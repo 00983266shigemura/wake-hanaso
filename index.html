@@ -1,0 +1,2557 @@
+<!DOCTYPE html>
+<!-- manifest＝つうしんが なくても あそべるように、端末へ しまう ファイルの一覧（tools/build_app.py が作る） -->
+<html lang="ja" manifest="offline.appcache">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="わけをはなそう">
+<meta name="robots" content="noindex">
+<link rel="apple-touch-icon" sizes="180x180" href="icon.png">
+<title>わけを はなそう</title>
+<!-- format-ok 年長の子が触るアプリ画面（デザインが主目的の成果物＝表示整形の規程は適用外。子の文字は全てひらがな） -->
+<style>
+  :root{
+    color-scheme: light dark;
+    --ground:#f3f1e8; --card:#ffffff; --ink:#1b1b1b; --ink-soft:#55606b; --line:#d6d8dc;
+    --ao:#1f77d0; --daidai:#f0932b; --murasaki:#b45fd1; --mizu:#4fc3f7; --ki:#f6d32d; --midori:#3cb371; --aka:#e64a4a;
+    --ao-bg:#eaf3fa; --daidai-bg:#fdf3e2; --daidai-ink:#8a5a00; --nashi:#9aa5ae; --on-accent:#ffffff; --locked:#f1f1ef; --sensei:#fff7d6;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --ground:#171a1f; --card:#1c232b; --ink:#e8edf2; --ink-soft:#a7b4c0; --line:#38434e; --ao-bg:#12354a; --daidai-bg:#3d3010; --daidai-ink:#f2b544; --nashi:#5b6672; --locked:#232830; --sensei:#3a3420;
+      --ao:#1f77d0; --daidai:#f0932b; --murasaki:#b45fd1; --mizu:#4fc3f7; --ki:#f6d32d; --midori:#3cb371; --aka:#e64a4a; --on-accent:#ffffff; }
+  }
+  *{box-sizing:border-box;}
+  html{font-size:24px;}
+  html,body{margin:0; padding:0;}
+  body{ background:var(--ground); color:var(--ink); font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif; font-size:0.92rem; line-height:1.6;
+    -webkit-text-size-adjust:100%; -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:rgba(0,0,0,0); }
+  .screen{padding:10px 14px 30px; max-width:900px; margin:0 auto;}
+  h1{font-size:1.25rem; margin:4px 0 2px;}
+  h2{font-size:1rem; margin:8px 0;}
+  p{margin:6px 0;}
+  button{ font-family:inherit; font-size:0.92rem; -webkit-appearance:none; appearance:none; border:0; border-radius:12px; padding:12px 20px; color:var(--on-accent); background:var(--ao); cursor:pointer; min-height:58px; }
+  button.sub{background:var(--nashi);}
+  button.small{font-size:0.67rem; min-height:0; padding:8px 14px;}
+  .head{overflow:hidden; padding-bottom:4px;}
+  .head h1{float:left;}
+  .head .right{float:right; margin-top:6px;}
+  .note{color:var(--ink-soft); font-size:0.67rem;}
+
+  /* はじめの がめん */
+  .modes{overflow:hidden; margin:6px 0 2px;}
+  .mbtn{float:left; width:48%; margin:1%; min-height:0; padding:8px 10px; background:var(--card); color:var(--ink); border:3px solid var(--line); font-size:0.83rem; text-align:left; line-height:1.3;}
+  .mbtn b{display:block; font-size:0.92rem;}
+  .mbtn span{display:block; font-size:0.54rem; color:var(--ink-soft);}
+  .mbtn.now{border-color:var(--daidai); background:var(--daidai-bg);}
+  .tree-row{overflow:hidden; background:var(--card); border:2px solid var(--line); border-radius:16px; padding:10px; margin:6px 0;}
+  .tree-row canvas{float:left; width:110px; height:110px; margin-right:12px;}
+  .tree-row .tree-text{overflow:hidden;}
+  .tree-row .tree-text p{margin:2px 0;}
+  .glist{overflow:hidden;}
+  .gbtn{float:left; width:48%; margin:1%; padding:7px 12px; text-align:left; min-height:0; font-size:0.83rem; line-height:1.3; background:var(--midori);}
+  .gbtn b{display:block; font-size:0.92rem;}
+  .gbtn span{display:block; font-size:0.54rem; opacity:0.92;}
+  .gbtn .rec{opacity:0.8;}
+  .g-himo{background:#8a5a2b;} .g-kurabe{background:#d9822b;} .g-shiso{background:#8e5bd1;} .g-kazoe{background:#2a9d8f;} .g-wakeru{background:#2e8b57;}
+  .g-kazuhanashi{background:#1f77d0;} .g-nakama{background:#c2567a;} .g-onajie{background:#5a7bd0;} .g-katachi{background:#b8860b;} .g-ana{background:#4b7f8a;} .g-hanashi{background:#d2691e;} .g-mix{background:#e64a4a;}
+  .home-foot{overflow:hidden; margin-top:10px;}
+  .home-foot button{float:left; margin-right:10px;}
+  .home-foot #grown-btn{float:right;}
+
+  /* やくそく（せんせいと の はじめ） */
+  .ready{background:var(--card); border:2px solid var(--line); border-radius:16px; padding:14px 18px; text-align:center;}
+  .ready ol{text-align:left; display:inline-block; margin:6px auto; padding-left:1.4em; font-size:1rem; line-height:1.7;}
+  .ready ol b{color:var(--ao);}
+  #ready-go{background:var(--daidai); font-size:1.08rem; padding:12px 40px;}
+
+  /* あそぶ */
+  .qbar{overflow:hidden; font-size:0.75rem; color:var(--ink-soft);}
+  .qbar #play-back{float:left; margin-right:10px;}
+  .qbar #say-btn{float:right;}
+  .qbar span{display:inline-block; margin:10px 10px 0 0;}
+  .qbar .badge{background:var(--daidai-bg); color:var(--daidai-ink); border-radius:10px; padding:0 10px; font-weight:bold;}
+  /* せんせいの おび＝おとなが よむ もんだい文（よんだら かくれる） */
+  .sensei{background:var(--sensei); border:2px solid var(--daidai); border-radius:12px; padding:6px 10px; margin:4px 0; overflow:hidden;}
+  .sensei .stitle{font-size:0.54rem; color:var(--daidai-ink); font-weight:bold;}
+  .sensei .stext{font-size:0.75rem; line-height:1.45; margin:2px 0 4px; word-break:keep-all;}
+  .sensei .snote{font-size:0.54rem; color:var(--ink-soft); display:inline-block; margin-right:8px;}
+  .sensei button{min-height:0; padding:6px 12px; font-size:0.67rem; margin-right:6px;}
+  #sensei-read{background:var(--daidai);}
+  .qbox{background:var(--card); border:2px solid var(--line); border-radius:16px; padding:8px; margin:6px 0; text-align:center;}
+  .qtext{font-size:0.92rem; font-weight:bold; margin:2px 0 6px; word-break:keep-all; line-height:1.4;}
+  .qstem canvas{display:block; margin:0 auto; max-width:100%;}
+  .stem-html{text-align:center; overflow:hidden;}
+  .stem-html img.bigimg{width:170px; height:170px; margin:4px 10px; border:3px solid var(--line); border-radius:14px; background:#fff;}
+  .stem-html img.midimg{width:130px; height:130px; margin:4px 6px; border:3px solid var(--line); border-radius:14px; background:#fff;}
+  .stem-html .bigq{font-size:1.08rem; font-weight:bold; padding:30px 10px; line-height:1.6; word-break:keep-all;}
+  .choices{display:-webkit-flex; display:flex; -webkit-flex-wrap:wrap; flex-wrap:wrap; -webkit-justify-content:center; justify-content:center; margin-top:6px;}
+  .choice{width:46%; max-width:190px; margin:1.5%; background:var(--card); border:4px solid var(--line); border-radius:16px; padding:6px; text-align:center; cursor:pointer;}
+  .choice canvas{display:block; margin:0 auto; max-width:100%;}
+  .choice .mark{font-size:0.75rem; min-height:1.3em; font-weight:bold;}
+  .choice.picked{border-color:var(--murasaki); background:#f5eafb;}
+  .choice.right{border-color:var(--ao); background:var(--ao-bg);}
+  .choice.right .mark{color:var(--ao);}
+  .choice.wrong{border-color:var(--daidai); background:var(--daidai-bg);}
+  .choice.wrong .mark{color:var(--daidai-ink);}
+  .choice-num .cnum{font-size:2rem; font-weight:bold; padding:14px 0 0; line-height:1.2;}
+  .choice-shape{width:30%; max-width:150px;}
+  .choice-img{width:40%; max-width:210px; padding:4px;}
+  .choice img.cimg{display:block; width:100%; max-width:160px; height:auto; margin:0 auto;}
+  .choices.six .choice-img{width:30%; max-width:150px;}
+  .choices.six .choice img.cimg{max-width:110px;}
+  .choice-wide{width:96%; max-width:420px; margin:0.6% 1%; padding:2px 6px;}
+  .choice-wide .mark{display:inline-block; min-height:0; margin-left:6px; font-size:0.6rem;}
+  .choice-cv{width:46%; max-width:170px; padding:4px;}
+  .open{text-align:center; margin:6px 0;}
+  #open-done{background:var(--daidai);}
+  /* どうして？ */
+  .why{background:var(--card); border:3px solid var(--murasaki); border-radius:16px; padding:8px 12px; margin:6px 0; text-align:center;}
+  .why .why-ask{font-size:1.08rem; font-weight:bold; color:var(--murasaki); margin:2px 0 6px;}
+  .why .wsmall{font-size:0.54rem; color:var(--ink-soft);}
+  .why button{min-height:0; padding:9px 14px; font-size:0.75rem; margin:3px;}
+  #why-ok{background:var(--ao);} #why-help{background:var(--daidai);} #why-no{background:var(--nashi);} #why-said{background:var(--ao);}
+  .frame{background:var(--daidai-bg); border-radius:12px; padding:6px 10px; margin:4px 0; font-size:0.83rem; font-weight:bold; line-height:1.5; word-break:keep-all;}
+  /* 制限時間＝へっていく ぼう */
+  .tbar{position:relative; height:22px; margin:6px auto 0; max-width:640px; background:var(--line); border-radius:11px; overflow:hidden;}
+  .tbar-fill{position:absolute; left:0; top:0; bottom:0; width:100%; background:#3cb371; -webkit-transition:width 0.25s linear; transition:width 0.25s linear;}
+  .tbar.mid .tbar-fill{background:#f5a623;}
+  .tbar.low .tbar-fill{background:#e8503a;}
+  .tbar-txt{position:relative; display:block; text-align:center; font-size:0.67rem; font-weight:bold; line-height:22px; color:#222;}
+  .tbar.low .tbar-txt{color:#fff;}
+  .msg{text-align:center; font-size:0.79rem; min-height:1.6em; margin:4px 0; line-height:1.4;}
+  .msg.good{color:var(--ao); font-weight:bold;}
+  .msg.warn{color:var(--daidai-ink); font-weight:bold;}
+  .playfoot{text-align:center;}
+  #next-btn{font-size:1.08rem; padding:12px 40px;}
+
+  /* けっか */
+  .res{background:var(--card); border:2px solid var(--line); border-radius:16px; padding:12px; text-align:center;}
+  .res canvas{width:150px; height:150px;}
+  .res.born canvas{width:200px; height:200px; -webkit-animation:born 0.9s ease-out 2; animation:born 0.9s ease-out 2;}
+  .res.born #res-events{font-size:1.08rem; font-weight:bold; color:var(--ao);}
+  @-webkit-keyframes born{0%{-webkit-transform:scale(0.6) rotate(-8deg);}50%{-webkit-transform:scale(1.12) rotate(6deg);}100%{-webkit-transform:scale(1) rotate(0);}}
+  @keyframes born{0%{transform:scale(0.6) rotate(-8deg);}50%{transform:scale(1.12) rotate(6deg);}100%{transform:scale(1) rotate(0);}}
+  .stars{font-size:1.42rem; letter-spacing:4px; color:var(--daidai);}
+  .res button{margin:6px 6px;}
+  .bridge{font-size:0.67rem; color:var(--ink-soft); background:var(--daidai-bg); border-radius:10px; padding:4px 10px; display:inline-block; max-width:620px; line-height:1.4;}
+
+  /* ずかん */
+  .zlist{overflow:hidden;}
+  .znav{text-align:center; margin:2px 0 4px;}
+  .znav .zpage{display:inline-block; min-width:12em; font-size:0.75rem; font-weight:bold; margin:0 8px;}
+  .zcard{float:left; width:22%; margin:1.5%; background:var(--card); border:2px solid var(--line); border-radius:14px; padding:8px; text-align:center; font-size:0.67rem;}
+  .zcard canvas{width:100%; height:auto;}
+  .zcard.none{color:var(--nashi); background:var(--locked);}
+  .zcard.none canvas{opacity:0.25;}
+
+  /* おとなのひと */
+  .grown{background:var(--card); border:2px solid var(--line); border-radius:16px; padding:10px 14px; font-size:0.58rem; line-height:1.4;}
+  .grown table{border-collapse:collapse; width:100%; margin:6px 0;}
+  .grown th,.grown td{border:1px solid var(--line); padding:2px 6px; text-align:left;}
+  .grown input,.grown select{font-size:0.67rem; padding:4px; border:1px solid var(--line); border-radius:8px; width:100%; color:var(--ink); background:var(--card);}
+  .grown label{display:block; margin-top:4px;}
+  .grown h3{margin:4px 0; font-size:0.67rem;}
+  .grown ul{margin:4px 0; padding-left:1.2em;}
+  .grown p{margin:4px 0;}
+  #reset-2{background:var(--murasaki);}
+
+  /* 押した 手ごたえ（K26）＝さわった しゅんかんに 少し ちぢみ、はなすと 行きすぎて もどる */
+  button,.choice{ -webkit-transition:-webkit-transform 0.22s cubic-bezier(0.34,1.56,0.64,1); transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1); }
+  .press{ -webkit-transform:scale(0.92); transform:scale(0.92); -webkit-transition-duration:0.05s; transition-duration:0.05s; }
+
+  /* エラーの 帯（K30） */
+  .err-band{position:fixed; left:0; right:0; bottom:0; z-index:9999; background:var(--daidai-bg); color:var(--ink); border-top:4px solid var(--daidai); padding:8px 14px; text-align:left;}
+  .err-band .err-1{font-size:0.83rem; font-weight:bold;}
+  .err-band .err-2{font-size:0.5rem; color:var(--ink-soft); word-break:break-all; line-height:1.3;}
+
+  /* iPad よこおき＝1がめんに おさめる（たて 640px 以内）。ひだり＝もんだい／みぎ＝えらぶ */
+  @media (min-width:900px) and (orientation:landscape){
+    .screen{max-width:1024px; padding:6px 14px 6px; overflow:hidden;}
+    #scr-play .sensei{clear:both; margin:2px 0;}
+    #scr-play .qbox{float:left; width:50%; margin:4px 0 0; padding:6px;}
+    #scr-play .choices{float:right; width:48%; margin-top:0;}
+    #scr-play .open{float:right; width:48%;}
+    #scr-play .why{float:right; clear:right; width:48%; margin:4px 0;}
+    #scr-play .msg{float:left; clear:left; width:50%; margin:4px 0 2px;}
+    #scr-play .playfoot{float:left; clear:left; width:50%;}
+    #scr-play .tbar{float:left; clear:left; width:50%; margin-top:4px;}
+    .gbtn{width:31.3%; margin:0.8%; padding:5px 10px;}
+    .gbtn span{font-size:0.5rem;}
+    .choice{margin:1% 1.5%; max-width:200px;}
+    .choice-cv{max-width:160px;}
+    .choice-shape{max-width:150px;}
+    .choice-wide{max-width:440px;}
+    .stem-html img.bigimg{width:150px; height:150px;}
+    .stem-html img.midimg{width:120px; height:120px;}
+    #scr-home .head,#scr-home .modes,#scr-home .tree-row,#scr-home .home-foot{float:left; clear:left; width:40%;}
+    #scr-home .glist{float:right; width:58%;}
+    .zcard{width:18%; margin:1%; padding:6px; font-size:0.58rem;}
+    .zcard canvas{width:110px; height:110px; margin:0 auto; display:block;}
+    #scr-zukan .head{padding-bottom:0;}
+    .grown-l{float:left; width:48%;}
+    .grown-r{float:right; width:48%;}
+    .grown{padding:6px 12px; font-size:0.54rem; line-height:1.3;}
+    .grown table{font-size:0.5rem; line-height:1.15; margin:3px 0;}
+    .grown th,.grown td{padding:1px 4px;}
+    .grown p,.grown ul{margin:2px 0;}
+    .grown h3{margin:2px 0;}
+  }
+  @media (max-width:600px){
+    .gbtn,.mbtn{width:98%;}
+    .zcard{width:47%;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== はじめの がめん ===== -->
+<div id="scr-home" class="screen">
+  <div class="head"><h1>わけを はなそう</h1></div>
+  <div class="modes">
+    <button id="mode-hitori" class="mbtn"><b>ひとりで</b><span>じぶんで タップして こたえる</span></button>
+    <button id="mode-sensei" class="mbtn"><b>せんせいと</b><span>おとなが よむ・たって こたえる・わけを はなす</span></button>
+  </div>
+  <p id="mode-note" class="note"></p>
+  <div class="tree-row">
+    <canvas id="home-tree" width="110" height="110"></canvas>
+    <div class="tree-text">
+      <p id="home-rank"></p>
+      <p id="home-fruits" class="note"></p>
+      <p id="home-stage"></p>
+      <p id="home-creature" class="note"></p>
+    </div>
+  </div>
+  <div id="genre-list" class="glist"></div>
+  <div class="home-foot">
+    <button id="zukan-btn" class="sub"><span id="home-zukan-count">ずかん</span></button>
+    <span id="home-ver" class="note"></span>
+    <button id="grown-btn" class="sub small">おとなのひと（ながおし）</button>
+  </div>
+</div>
+
+<!-- ===== せんせいと＝はじめる まえの やくそく ===== -->
+<div id="scr-ready" class="screen" style="display:none">
+  <div class="ready">
+    <h2 id="ready-name"></h2>
+    <p class="note">きょうの やくそく（3つ だけ）</p>
+    <ol>
+      <li><b>たって</b> こたえる</li>
+      <li>もんだいは <b>1かい</b> で きく（さいごまで）</li>
+      <li>こたえたら <b>「どうして」</b> を はなす</li>
+    </ol>
+    <p class="note"><span id="ready-count"></span>・おとなが もんだいを よみます</p>
+    <p><button id="ready-go">はじめる</button> <button id="ready-back" class="sub small">もどる</button></p>
+  </div>
+</div>
+
+<!-- ===== あそぶ ===== -->
+<div id="scr-play" class="screen" style="display:none">
+  <div class="qbar">
+    <button id="play-back" class="sub small">やめる</button>
+    <span id="play-genre"></span><span id="play-no"></span><span id="play-mode" class="badge"></span>
+    <button id="say-btn" class="sub small">よむ</button>
+  </div>
+  <div id="sensei-box" class="sensei" style="display:none">
+    <div class="stitle">せんせい（おとな）が よむ もんだい</div>
+    <div id="sensei-text" class="stext"></div>
+    <span id="sensei-note" class="snote"></span>
+    <button id="sensei-read">よんだよ</button><button id="sensei-again" class="sub" style="display:none">もういちど みる</button>
+  </div>
+  <div class="qbox" id="q-box">
+    <div id="q-text" class="qtext"></div>
+    <div id="q-stem-wrap" class="qstem"><canvas id="q-stem" width="300" height="280"></canvas><div id="q-stem-html" class="stem-html" style="display:none"></div></div>
+  </div>
+  <div id="choices" class="choices"></div>
+  <div id="open-box" class="open" style="display:none"><button id="open-done">はなし おわった</button></div>
+  <div id="why-box" class="why" style="display:none">
+    <div id="why-ask" class="why-ask">どうして そう おもったの？</div>
+    <div id="frame-box" class="frame" style="display:none"><div class="wsmall">いいかたの かた（まねして いってみよう）</div><div id="frame-text"></div></div>
+    <div id="why-btns"><span class="wsmall">おとなが えらぶ：</span><button id="why-ok">はなせた</button><button id="why-help">てつだって</button><button id="why-no">もうすこし</button></div>
+    <button id="why-said" style="display:none">かたを つかって いえた</button>
+  </div>
+  <div id="msg" class="msg"></div>
+  <div class="playfoot"><button id="next-btn" style="display:none">つぎへ</button></div>
+  <div id="tbar" class="tbar" style="display:none"><div id="tbar-fill" class="tbar-fill"></div><span id="tbar-txt" class="tbar-txt"></span></div>
+</div>
+
+<!-- ===== けっか ===== -->
+<div id="scr-result" class="screen" style="display:none">
+  <div class="res" id="res-card">
+    <h2 id="res-title"></h2>
+    <div id="res-stars" class="stars"></div>
+    <p id="res-score"></p>
+    <p id="res-fruits"></p>
+    <canvas id="res-tree" width="150" height="150"></canvas>
+    <p id="res-events"></p>
+    <p><span id="res-bridge" class="bridge"></span></p>
+    <div>
+      <button id="res-again">もういちど</button>
+      <button id="res-home" class="sub">べつの もんだいへ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ずかん ===== -->
+<div id="scr-zukan" class="screen" style="display:none">
+  <div class="head"><h1>きに きた いきもの</h1><button id="zukan-back" class="sub small right">もどる</button></div>
+  <p class="note">みのりを 24こ あつめると、きが そだって、いきものが 1ぴき あそびに くるよ。</p>
+  <div class="znav"><button id="zukan-prev" class="sub small">← まえ</button><span id="zukan-page" class="zpage"></span><button id="zukan-next" class="sub small">つぎ →</button></div>
+  <div id="zukan-list" class="zlist"></div>
+</div>
+
+<!-- ===== おとなのひと ===== -->
+<div id="scr-grown" class="screen" style="display:none">
+  <div class="head"><h1>おとなのひと</h1><button id="grown-back" class="sub small right">もどる</button></div>
+  <div class="grown"><div class="grown-l">
+    <label>なまえ（ひらがな・8もじまで）<input id="grown-name" type="text" maxlength="8"></label>
+    <label>1まわりの 問題の数
+      <select id="grown-per"><option value="5">5問</option><option value="8">8問</option></select>
+    </label>
+    <label>あそびかた <select id="grown-mode"><option value="sensei">せんせいと（大人が読む・1対1）</option><option value="hitori">ひとりで（子がタップ）</option></select></label>
+    <label>おと <select id="grown-snd"><option value="on">あり</option><option value="off">なし</option></select></label>
+    <label>問題の読み上げ（ひとりで のとき） <select id="grown-voice"><option value="on">あり</option><option value="off">なし</option></select></label>
+    <p class="note">おとが 出ないときは、iPad の 音量と 消音（ミュート）を 確かめてください（横の消音スイッチ・コントロールセンターのベルの印）。</p>
+    <p><button id="grown-snd-test" class="small">音のためし</button> <span id="grown-snd-res" class="note"></span></p>
+    <p><button id="grown-save" class="small">ほぞんして もどる</button> <button id="grown-zukan-all" class="sub small">ずかんの絵を全部見る（親用）</button></p>
+    <table id="grown-table"></table>
+    <p class="note">「わけ」＝せんせいと で「はなせた」を押した数。</p>
+  </div><div class="grown-r">
+    <h3>せんせいと（1対1の口頭試問の形）の進め方</h3>
+    <ul>
+      <li>子は立って、iPadは大人が持つ。問題文は大人が1回だけ読む（読んだら「よんだよ」で文が隠れる）</li>
+      <li>子が指さし・声で答えたら、大人がその選択肢をタップ。すぐ正解は出ず「どうして そう おもったの？」が出る</li>
+      <li>合っていても理由を言わせる。言えたら「はなせた」。詰まったら「てつだって」＝言い方の型を見せて真似させる</li>
+      <li>そのあと正解・不正解。1回目の間違いはヒントともう一度、2回目は解き方つきの答え。✕・減点はなし</li>
+      <li>「おはなし」は正解のない問題（話を作る・質問に答える）。「はなし おわった」→理由の記録だけ</li>
+    </ul>
+    <h3>言い方の型（口頭試問で評価される「過程の説明」）</h3>
+    <ul>
+      <li>「ほかのは みんな ○○ だけど、これだけ △△ だから です」（仲間はずれ）</li>
+      <li>「じゅんばんに かぞえたら ○こ でした」「のこりが いちばん すくない から」</li>
+      <li>最後は「〜です」で言い切る。大人は「どこを見た？」「つぎは？」と手順を聞く</li>
+    </ul>
+    <p><button id="reset-1" class="sub small">きろくを ぜんぶ けす</button> <button id="reset-2" class="small" style="display:none">ほんとうに けす</button></p>
+    <p id="grown-ver" class="note"></p>
+  </div></div>
+</div>
+
+<!-- ===== エラーの帯（K30） ===== -->
+<div id="err-band" class="err-band" style="display:none" data-n="0">
+  <div class="err-1">ごめんね。うまく うごかなかったよ（さわると きえるよ）</div>
+  <div id="err-2" class="err-2"></div>
+</div>
+<script>
+/* エラーの帯（K30）。アプリの 本体より 先に 置く＝本体の 読みこみで 止まっても 帯が 出る。全部を try で かこむ */
+(function (global) {
+  'use strict';
+  var doc = global.document;
+  global.onerror = function (msg, src, line, col) {
+    var band, raw, n, file;
+    try {
+      band = doc.getElementById('err-band'); raw = doc.getElementById('err-2');
+      if (!band || !raw) { return false; }
+      n = parseInt(band.getAttribute('data-n') || '0', 10) + 1;
+      band.setAttribute('data-n', String(n));
+      if (n === 1) {
+        file = String(src || '').split('?')[0].split('/').pop();
+        raw.textContent = String(msg) + '（' + (file || '-') + ' ' + line + (col ? ':' + col : '') + '）';
+      } else {
+        raw.setAttribute('data-more', String(n - 1));
+        if (raw.textContent.indexOf('（ほか') < 0) { raw.textContent += '（ほか あり）'; }
+      }
+      band.style.display = 'block';
+    } catch (e) { /* 帯が 出せなくても とめない */ }
+    return false;
+  };
+  try {
+    doc.addEventListener('click', function (ev) {
+      var t = ev.target, k = 0;
+      while (t && k < 4) { if (t.id === 'err-band') { t.style.display = 'none'; return; } t = t.parentNode; k++; }
+    }, false);
+  } catch (e2) { /* なくても すすむ */ }
+})(window);
+</script>
+<script>
+/* わけを はなそう ―― 1対1の 口頭試問（テスターと 向き合って、こたえて、わけを はなす）の れんしゅう
+   （2012年の iPad・iOS 10.3.3 で動く書き方＝var と function だけ。絵文字なし。端末内保存は try で包む）
+   このファイル＝土台（らんすう・絵の部品・絵の一覧・おと・きろく・ごほうび）。
+   もんだいの型は src/gen.js、画面は src/ui.js。tools/build_app.py が index.html へ埋め込む。直すのは src/ だけ。 */
+(function (global) {
+  'use strict';
+
+  var WH = {};
+  /* このファイルを直したら この数字を +1 する。version.txt にも同じ数字を書く（build_app.py が照合する） */
+  WH.APP_VERSION = 1;
+  WH.SCHEMA = 1;
+  /* 端末にしまう記録の名前は 全部 wake_ で始める（K29＝同じ公開先の 他のアプリの記録を 上書きしない） */
+  WH.STORE_KEY = 'wake_hanaso_v1';
+  WH.UPD_KEY = 'wake_upd';
+
+  /* ================= いろ ================= */
+  var COL = {
+    ao: '#1f77d0', daidai: '#f0932b', murasaki: '#b45fd1', mizu: '#4fc3f7', ki: '#f6d32d',
+    midori: '#3cb371', aka: '#e64a4a', sumi: '#1b1b1b', shiro: '#ffffff', usui: '#9aa3ab', kami: '#fffdf7',
+    hai: '#c9cfd4', cha: '#8a5a2b', momo: '#f6b7c4'
+  };
+  WH.COL = COL;
+
+  /* ================= らんすう（試験では たねを 固定できる） ================= */
+  var rngState = null;
+  function rnd() {
+    if (rngState === null) { return Math.random(); }
+    rngState = (rngState + 0x6D2B79F5) | 0;
+    var t = rngState;
+    t = Math.imul ? Math.imul(t ^ (t >>> 15), t | 1) : (((t ^ (t >>> 15)) * (t | 1)) | 0);
+    t ^= t + (Math.imul ? Math.imul(t ^ (t >>> 7), t | 61) : (((t ^ (t >>> 7)) * (t | 61)) | 0));
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+  WH.seed = function (s) { rngState = (s === null || s === undefined) ? null : (s | 0); };
+  function ri(n) { return Math.floor(rnd() * n); }
+  function pick(arr) { return arr[ri(arr.length)]; }
+  function shuffle(arr) {
+    var a = arr.slice(), i, j, t;
+    for (i = a.length - 1; i > 0; i--) { j = ri(i + 1); t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+  function uniqNums(answer, count, lo, hi) {
+    /* answer を含む count 個の ちがう数（lo〜hi）。近い数を まぜて まぎらわしく（K12） */
+    var out = [answer], tries = 0, v;
+    while (out.length < count && tries < 200) {
+      tries++;
+      v = answer + (ri(5) - 2);
+      if (v < lo || v > hi || out.indexOf(v) >= 0) { continue; }
+      out.push(v);
+    }
+    while (out.length < count) { v = lo + ri(hi - lo + 1); if (out.indexOf(v) < 0) { out.push(v); } }
+    return shuffle(out);
+  }
+  WH.rnd = rnd; WH.ri = ri; WH.pick = pick; WH.shuffle = shuffle; WH.uniqNums = uniqNums;
+
+  /* ================= 絵の 部品 ================= */
+  function circle(ctx, x, y, r, fill, stroke, lw) {
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 2; ctx.stroke(); }
+  }
+  function ellipse(ctx, x, y, rx, ry, fill, stroke, lw) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(rx, ry);
+    ctx.beginPath(); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.restore();
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 2; ctx.stroke(); }
+  }
+  function poly(ctx, pts, fill, stroke, lw) {
+    var i;
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for (i = 1; i < pts.length; i++) { ctx.lineTo(pts[i][0], pts[i][1]); }
+    ctx.closePath();
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 2; ctx.stroke(); }
+  }
+  function line(ctx, x1, y1, x2, y2, color, lw) {
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+    ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.stroke();
+  }
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+  function text(ctx, s, x, y, px, color, align) {
+    ctx.save(); ctx.font = 'bold ' + Math.round(px) + 'px sans-serif'; ctx.fillStyle = color || COL.sumi; ctx.textAlign = align || 'center'; ctx.textBaseline = 'middle'; ctx.fillText(s, x, y); ctx.restore();
+  }
+  /* かたち（○●△□×☆）を (0,0) まん中・半径 r で */
+  var SHAPE_NAMES = { maru: 'しろまる', kuro: 'くろまる', sankaku: 'さんかく', shikaku: 'しかく', batsu: 'ばつ', hoshi: 'ほし' };
+  WH.SHAPE_NAMES = SHAPE_NAMES;
+  function drawShape(ctx, name, r, colorFill) {
+    var i, p = [], a;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if (name === 'maru') { circle(ctx, 0, 0, r, COL.shiro, COL.sumi, Math.max(2, r * 0.18)); }
+    else if (name === 'kuro') { circle(ctx, 0, 0, r, colorFill || COL.sumi, COL.sumi, 2); }
+    else if (name === 'sankaku') { poly(ctx, [[0, -r * 1.1], [r * 1.05, r * 0.8], [-r * 1.05, r * 0.8]], colorFill || COL.daidai, COL.sumi, Math.max(2, r * 0.14)); }
+    else if (name === 'shikaku') { ctx.beginPath(); ctx.rect(-r * 0.9, -r * 0.9, r * 1.8, r * 1.8); ctx.fillStyle = colorFill || COL.mizu; ctx.fill(); ctx.strokeStyle = COL.sumi; ctx.lineWidth = Math.max(2, r * 0.14); ctx.stroke(); }
+    else if (name === 'batsu') { ctx.strokeStyle = colorFill || COL.sumi; ctx.lineWidth = Math.max(2.5, r * 0.22); ctx.beginPath(); ctx.moveTo(-r, -r); ctx.lineTo(r, r); ctx.moveTo(r, -r); ctx.lineTo(-r, r); ctx.stroke(); }
+    else if (name === 'hoshi') {
+      for (i = 0; i < 10; i++) { a = -Math.PI / 2 + i * Math.PI / 5; p.push([Math.cos(a) * (i % 2 ? r * 0.48 : r * 1.15), Math.sin(a) * (i % 2 ? r * 0.48 : r * 1.15)]); }
+      poly(ctx, p, colorFill || COL.ki, COL.sumi, Math.max(2, r * 0.12));
+    }
+  }
+  WH.draw = { circle: circle, ellipse: ellipse, poly: poly, line: line, roundRect: roundRect, text: text, shape: drawShape };
+
+  function setupCanvas(canvas) {
+    var css = canvas.clientWidth || parseInt(canvas.getAttribute('width'), 10) || 120, dpr = global.devicePixelRatio || 1, ctx, px = Math.round(css * dpr), h = canvas.clientHeight || parseInt(canvas.getAttribute('height'), 10) || css, py = Math.round(h * dpr);
+    /* 見た目の大きさを CSS で固定してから 中の画素数を dpr 倍にする。固定しないと 描くたびに 2倍・4倍… と育つ（iPad で実測・2026-11-01） */
+    if (!canvas.style.width) { canvas.style.width = css + 'px'; canvas.style.height = h + 'px'; }
+    if (canvas.width !== px || canvas.height !== py) { canvas.width = px; canvas.height = py; }
+    ctx = canvas.getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.scale(dpr, dpr);
+    return { ctx: ctx, w: css, h: h };
+  }
+  WH.setupCanvas = setupCanvas;
+  function paper(ctx, w, h, frame) {
+    ctx.fillStyle = COL.kami; ctx.strokeStyle = frame || COL.sumi; ctx.lineWidth = Math.max(2, w * 0.012);
+    roundRect(ctx, 1.5, 1.5, w - 3, h - 3, Math.min(w, h) * 0.06); ctx.fill(); ctx.stroke();
+  }
+  WH.paper = paper;
+
+  /* ================= 絵の 一覧（img/<id>.png・66枚＝ちえの もり と 同じ絵）=================
+     m＝音（しりとり に つかう）。季節・なかま・たべもの・いきもの・のりもの・もちもの の しるし */
+  var ITEMS = [
+    { id: 'sakura', name: 'さくら', m: ['さ', 'く', 'ら'], season: 'haru', plant: true },
+    { id: 'tulip', name: 'ちゅーりっぷ', m: ['ちゅ', 'ー', 'り', 'っ', 'ぷ'], season: 'haru', plant: true },
+    { id: 'koinobori', name: 'こいのぼり', m: ['こ', 'い', 'の', 'ぼ', 'り'], season: 'haru' },
+    { id: 'tanpopo', name: 'たんぽぽ', m: ['た', 'ん', 'ぽ', 'ぽ'], season: 'haru', plant: true },
+    { id: 'ichigo', name: 'いちご', m: ['い', 'ち', 'ご'], season: 'haru', food: true },
+    { id: 'hinamatsuri', name: 'ひなにんぎょう', m: ['ひ', 'な', 'に', 'ん', 'ぎょ', 'う'], season: 'haru' },
+    { id: 'suika', name: 'すいか', m: ['す', 'い', 'か'], season: 'natsu', food: true },
+    { id: 'himawari', name: 'ひまわり', m: ['ひ', 'ま', 'わ', 'り'], season: 'natsu', plant: true },
+    { id: 'semi', name: 'せみ', m: ['せ', 'み'], season: 'natsu', animal: true, cat: 'mushi' },
+    { id: 'asagao', name: 'あさがお', m: ['あ', 'さ', 'が', 'お'], season: 'natsu', plant: true },
+    { id: 'kakigori', name: 'かきごおり', m: ['か', 'き', 'ご', 'お', 'り'], season: 'natsu', food: true },
+    { id: 'tanabata', name: 'たなばた', m: ['た', 'な', 'ば', 'た'], season: 'natsu' },
+    { id: 'kaki', name: 'かき', m: ['か', 'き'], season: 'aki', food: true },
+    { id: 'kuri', name: 'くり', m: ['く', 'り'], season: 'aki', food: true },
+    { id: 'momiji', name: 'もみじ', m: ['も', 'み', 'じ'], season: 'aki', plant: true },
+    { id: 'tonbo', name: 'とんぼ', m: ['と', 'ん', 'ぼ'], season: 'aki', animal: true, cat: 'mushi' },
+    { id: 'otsukimi', name: 'おつきみ', m: ['お', 'つ', 'き', 'み'], season: 'aki' },
+    { id: 'kosumosu', name: 'こすもす', m: ['こ', 'す', 'も', 'す'], season: 'aki', plant: true },
+    { id: 'yukidaruma', name: 'ゆきだるま', m: ['ゆ', 'き', 'だ', 'る', 'ま'], season: 'fuyu' },
+    { id: 'mikan', name: 'みかん', m: ['み', 'か', 'ん'], season: 'fuyu', food: true },
+    { id: 'tsubaki', name: 'つばき', m: ['つ', 'ば', 'き'], season: 'fuyu', plant: true },
+    { id: 'kagamimochi', name: 'かがみもち', m: ['か', 'が', 'み', 'も', 'ち'], season: 'fuyu', food: true },
+    { id: 'setsubun', name: 'せつぶん', m: ['せ', 'つ', 'ぶ', 'ん'], season: 'fuyu' },
+    { id: 'christmas_tree', name: 'くりすますつりー', m: ['く', 'り', 'す', 'ま', 'す', 'つ', 'り', 'ー'], season: 'fuyu' },
+    { id: 'hato', name: 'はと', m: ['は', 'と'], cat: 'tori', animal: true },
+    { id: 'karasu', name: 'からす', m: ['か', 'ら', 'す'], cat: 'tori', animal: true },
+    { id: 'suzume', name: 'すずめ', m: ['す', 'ず', 'め'], cat: 'tori', animal: true },
+    { id: 'kabutomushi', name: 'かぶとむし', m: ['か', 'ぶ', 'と', 'む', 'し'], cat: 'mushi', animal: true },
+    { id: 'tentoumushi', name: 'てんとうむし', m: ['て', 'ん', 'と', 'う', 'む', 'し'], cat: 'mushi', animal: true },
+    { id: 'kamakiri', name: 'かまきり', m: ['か', 'ま', 'き', 'り'], cat: 'mushi', animal: true },
+    { id: 'tai', name: 'たい', m: ['た', 'い'], cat: 'sakana', animal: true },
+    { id: 'kingyo', name: 'きんぎょ', m: ['き', 'ん', 'ぎょ'], cat: 'sakana', animal: true },
+    { id: 'unagi', name: 'うなぎ', m: ['う', 'な', 'ぎ'], cat: 'sakana', animal: true },
+    { id: 'tokage', name: 'とかげ', m: ['と', 'か', 'げ'], cat: 'hachu', animal: true },
+    { id: 'kaeru', name: 'かえる', m: ['か', 'え', 'る'], cat: 'hachu', animal: true },
+    { id: 'kame', name: 'かめ', m: ['か', 'め'], cat: 'hachu', animal: true },
+    { id: 'inu', name: 'いぬ', m: ['い', 'ぬ'], cat: 'kemono', animal: true },
+    { id: 'saru', name: 'さる', m: ['さ', 'る'], cat: 'kemono', animal: true },
+    { id: 'zou', name: 'ぞう', m: ['ぞ', 'う'], cat: 'kemono', animal: true },
+    { id: 'densha', name: 'でんしゃ', m: ['で', 'ん', 'しゃ'], cat: 'norimono', ride: true },
+    { id: 'jitensha', name: 'じてんしゃ', m: ['じ', 'て', 'ん', 'しゃ'], cat: 'norimono', ride: true },
+    { id: 'kuruma', name: 'くるま', m: ['く', 'る', 'ま'], cat: 'norimono', ride: true },
+    { id: 'ringo', name: 'りんご', m: ['り', 'ん', 'ご'], food: true },
+    { id: 'gorira', name: 'ごりら', m: ['ご', 'り', 'ら'], animal: true, cat: 'kemono' },
+    { id: 'rappa', name: 'らっぱ', m: ['ら', 'っ', 'ぱ'], carry: true, gakki: true },
+    { id: 'panda', name: 'ぱんだ', m: ['ぱ', 'ん', 'だ'], animal: true, cat: 'kemono' },
+    { id: 'daikon', name: 'だいこん', m: ['だ', 'い', 'こ', 'ん'], food: true },
+    { id: 'nezumi', name: 'ねずみ', m: ['ね', 'ず', 'み'], animal: true, cat: 'kemono' },
+    { id: 'enpitsu', name: 'えんぴつ', m: ['え', 'ん', 'ぴ', 'つ'], carry: true, bunbogu: true },
+    { id: 'hon', name: 'ほん', m: ['ほ', 'ん'], carry: true, bunbogu: true },
+    { id: 'kasa', name: 'かさ', m: ['か', 'さ'], carry: true, ame: true },
+    { id: 'tsukue', name: 'つくえ', m: ['つ', 'く', 'え'], kagu: true },
+    { id: 'neko', name: 'ねこ', m: ['ね', 'こ'], animal: true, cat: 'kemono' },
+    { id: 'kutsu', name: 'くつ', m: ['く', 'つ'], carry: true, kiru: true },
+    { id: 'ki', name: 'き', m: ['き'], plant: true },
+    { id: 'hana', name: 'はな', m: ['は', 'な'], plant: true },
+    { id: 'tsumiki', name: 'つみき', m: ['つ', 'み', 'き'], carry: true, omocha: true },
+    { id: 'boushi', name: 'ぼうし', m: ['ぼ', 'う', 'し'], carry: true, kiru: true },
+    { id: 'tokei', name: 'とけい', m: ['と', 'け', 'い'], carry: true },
+    { id: 'isu', name: 'いす', m: ['い', 'す'], kagu: true },
+    { id: 'uchiwa', name: 'うちわ', m: ['う', 'ち', 'わ'], carry: true },
+    { id: 'kuma', name: 'くま', m: ['く', 'ま'], animal: true, cat: 'kemono' },
+    { id: 'banana', name: 'ばなな', m: ['ば', 'な', 'な'], food: true },
+    { id: 'terebi', name: 'てれび', m: ['て', 'れ', 'び'], kagu: true },
+    { id: 'hasami', name: 'はさみ', m: ['は', 'さ', 'み'], carry: true, bunbogu: true },
+    { id: 'basu', name: 'ばす', m: ['ば', 'す'], ride: true, cat: 'norimono' }
+  ];
+  WH.ITEMS = ITEMS;
+  var ITEM_BY_ID = {};
+  (function () { var i; for (i = 0; i < ITEMS.length; i++) { ITEM_BY_ID[ITEMS[i].id] = ITEMS[i]; } })();
+  WH.itemById = function (id) { return ITEM_BY_ID[id]; };
+  WH.itemsWhere = function (fn) { var i, out = []; for (i = 0; i < ITEMS.length; i++) { if (fn(ITEMS[i])) { out.push(ITEMS[i]); } } return out; };
+  WH.SEASON_NAME = { haru: 'はる', natsu: 'なつ', aki: 'あき', fuyu: 'ふゆ' };
+  WH.CAT_NAME = { tori: 'とり', mushi: 'むし', sakana: 'さかな', hachu: 'かえるや かめの なかま', kemono: 'けもの', norimono: 'のりもの' };
+
+  /* ================= おと（ファイルを使わず その場で つくる・ちえの もり と 同じ しくみ） ================= */
+  var NOTE = { C5: 523.3, D5: 587.3, E5: 659.3, F5: 698.5, G5: 784.0, A5: 880.0, B5: 987.8,
+    C6: 1046.5, D6: 1174.7, E6: 1318.5, F6: 1396.9, G6: 1568.0, A6: 1760.0, C7: 2093.0, E4: 329.6, G4: 392.0, A4: 440.0 };
+  WH.NOTE = NOTE;
+  var SOUNDS = {
+    tap: [['A5', 0, 0.06, 0.35, 'triangle']],
+    pick: [['E6', 0, 0.05, 0.3, 'triangle']],
+    ok: [['C6', 0, 0.09, 0.6, 'square'], ['E6', 0.08, 0.09, 0.6, 'square'], ['G6', 0.16, 0.09, 0.6, 'square'], ['C7', 0.24, 0.28, 0.6, 'square'], ['G6', 0.24, 0.28, 0.35, 'triangle']],
+    ok2: [['E6', 0, 0.09, 0.5, 'square'], ['A6', 0.09, 0.22, 0.5, 'square']],
+    oshii: [['G5', 0, 0.12, 0.45, 'sine'], ['E5', 0.13, 0.2, 0.45, 'sine']],
+    kotae: [['A4', 0, 0.16, 0.4, 'sine'], ['C5', 0.16, 0.16, 0.4, 'sine'], ['E5', 0.32, 0.26, 0.4, 'sine']],
+    hanashi: [['C6', 0, 0.1, 0.45, 'triangle'], ['E6', 0.1, 0.2, 0.45, 'triangle']],
+    round: [['C5', 0, 0.12, 0.55, 'square'], ['E5', 0.13, 0.12, 0.55, 'square'], ['G5', 0.26, 0.12, 0.55, 'square'], ['C6', 0.42, 0.55, 0.5, 'square'], ['E6', 0.42, 0.55, 0.35, 'triangle'], ['G5', 0.42, 0.55, 0.35, 'triangle']],
+    perfect: [['C5', 0, 0.1, 0.55, 'square'], ['E5', 0.1, 0.1, 0.55, 'square'], ['G5', 0.2, 0.1, 0.55, 'square'], ['C6', 0.3, 0.1, 0.55, 'square'], ['E6', 0.4, 0.1, 0.55, 'square'], ['G6', 0.5, 0.1, 0.55, 'square'], ['C7', 0.62, 0.7, 0.5, 'square'], ['E6', 0.62, 0.7, 0.35, 'triangle'], ['G6', 0.62, 0.7, 0.35, 'triangle']],
+    grow: [['G5', 0, 0.08, 0.45, 'triangle'], ['C6', 0.07, 0.08, 0.45, 'triangle'], ['E6', 0.14, 0.08, 0.45, 'triangle'], ['G6', 0.21, 0.08, 0.45, 'triangle'], ['C7', 0.28, 0.08, 0.45, 'triangle'], ['E6', 0.36, 0.08, 0.4, 'triangle'], ['G6', 0.43, 0.08, 0.4, 'triangle'], ['C7', 0.5, 0.45, 0.5, 'triangle']],
+    combo: [['C6', 0, 0.07, 0.5, 'square'], ['E6', 0.07, 0.07, 0.5, 'square'], ['G6', 0.14, 0.07, 0.5, 'square'], ['C7', 0.21, 0.07, 0.5, 'square'], ['E6', 0.3, 0.2, 0.45, 'triangle'], ['G6', 0.3, 0.2, 0.45, 'triangle'], ['C7', 0.3, 0.3, 0.45, 'triangle']]
+  };
+  WH.SOUNDS = SOUNDS;
+  var snd = { ctx: null, on: true, vol: 0.22, keep: null, voice: true };
+  WH.snd = snd;
+  function audioClass() { return global.AudioContext || global.webkitAudioContext || null; }
+  /* 音の ない 短い WAV（8000Hz・16bit・0.25びょう）。消音スイッチ対策の ために ながしつづける */
+  function silentWav() {
+    var n = 2000, len = n * 2, h, i;
+    function u32(v) { return String.fromCharCode(v & 255, (v >> 8) & 255, (v >> 16) & 255, (v >> 24) & 255); }
+    function u16(v) { return String.fromCharCode(v & 255, (v >> 8) & 255); }
+    h = 'RIFF' + u32(36 + len) + 'WAVE' + 'fmt ' + u32(16) + u16(1) + u16(1) + u32(8000) + u32(16000) + u16(2) + u16(16) + 'data' + u32(len);
+    for (i = 0; i < len; i++) { h += String.fromCharCode(0); }
+    return 'data:audio/wav;base64,' + global.btoa(h);
+  }
+  WH.silentWav = silentWav;
+  /* 音の しくみが 止まっていたら 起こしなおす（K4）。鳴らす 入口で 毎回 見る。失敗しても 止まらない */
+  function wake(ctx) {
+    var p;
+    try {
+      if (ctx && ctx.state && ctx.state !== 'running' && ctx.resume) {
+        p = ctx.resume();
+        if (p && typeof p.then === 'function') { p.then(function () {}, function () {}); }
+        return true;
+      }
+    } catch (e) { /* 鳴らなくても つかえる */ }
+    return false;
+  }
+  WH.wakeAudio = wake;
+  snd.unlock = function () {
+    var AC, b, src, a;
+    try {
+      if (!snd.keep && global.Audio) {
+        a = new global.Audio(); a.src = silentWav(); a.loop = true;
+        snd.keep = a;
+      }
+      if (snd.keep && snd.on && snd.keep.paused) { snd.keep.play(); }
+    } catch (e0) { /* 鳴らなくても つかえる */ }
+    try {
+      if (!snd.ctx) {
+        AC = audioClass(); if (!AC) { return false; }
+        snd.ctx = new AC();
+        b = snd.ctx.createBuffer(1, 1, 22050);
+        src = snd.ctx.createBufferSource(); src.buffer = b; src.connect(snd.ctx.destination);
+        if (src.start) { src.start(0); } else if (src.noteOn) { src.noteOn(0); }
+      }
+      wake(snd.ctx);
+      return true;
+    } catch (e) { return false; }
+  };
+  function tone(ctx, freq, at, dur, vol, type) {
+    var o = ctx.createOscillator(), g = ctx.createGain(), peak = Math.max(0.0002, vol * snd.vol);
+    o.type = type || 'triangle';
+    o.frequency.setValueAtTime(freq, at);
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.linearRampToValueAtTime(peak, at + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    o.connect(g); g.connect(ctx.destination);
+    if (o.start) { o.start(at); o.stop(at + dur + 0.03); } else { o.noteOn(at); o.noteOff(at + dur + 0.03); }
+  }
+  snd.play = function (name, delay) {
+    var ctx = snd.ctx, seq = SOUNDS[name], t0, i, n;
+    if (!snd.on || !ctx || !seq) { return false; }
+    wake(ctx);
+    try {
+      t0 = ctx.currentTime + 0.01 + (delay || 0);
+      for (i = 0; i < seq.length; i++) { n = seq[i]; tone(ctx, NOTE[n[0]], t0 + n[1], n[2], n[3], n[4]); }
+      return true;
+    } catch (e) { return false; }
+  };
+  snd.say = function (t) {
+    var u;
+    if (!snd.on || snd.voice === false) { return false; }
+    try {
+      if (!global.speechSynthesis || !global.SpeechSynthesisUtterance) { return false; }
+      global.speechSynthesis.cancel();
+      u = new global.SpeechSynthesisUtterance(t);
+      u.lang = 'ja-JP'; u.rate = 0.9;
+      global.speechSynthesis.speak(u);
+      return true;
+    } catch (e) { return false; }
+  };
+  snd.hush = function () { try { if (global.speechSynthesis) { global.speechSynthesis.cancel(); } } catch (e) { /* なくても */ } };
+
+  /* ================= きろく（端末内保存） ================= */
+  WH.GENRE_IDS = [];   /* gen.js が うめる */
+  function freshState() {
+    var g = {}, i;
+    for (i = 0; i < WH.GENRE_IDS.length; i++) { g[WH.GENRE_IDS[i]] = { level: 1, rounds: 0, q: 0, ok: 0, exp: 0 }; }
+    return { schema: WH.SCHEMA, name: '', perRound: 5, mode: 'sensei', total: 0, cFruits: 0, cIndex: 0, zukan: [], lap: 0, g: g, mix: { rounds: 0, q: 0, ok: 0, exp: 0 } };
+  }
+  WH.freshState = freshState;
+  function loadState() {
+    var raw = null, s, i, k;
+    try { raw = global.localStorage ? global.localStorage.getItem(WH.STORE_KEY) : null; } catch (e) { raw = null; }
+    if (!raw) { return freshState(); }
+    try { s = JSON.parse(raw); } catch (e2) { return freshState(); }
+    if (!s || s.schema !== WH.SCHEMA) { return freshState(); }
+    for (i = 0; i < WH.GENRE_IDS.length; i++) { k = WH.GENRE_IDS[i]; if (!s.g[k]) { s.g[k] = { level: 1, rounds: 0, q: 0, ok: 0, exp: 0 }; } }
+    if (!s.mix) { s.mix = { rounds: 0, q: 0, ok: 0, exp: 0 }; }
+    if (s.mode !== 'hitori' && s.mode !== 'sensei') { s.mode = 'sensei'; }
+    return s;
+  }
+  function saveState(s) { try { if (global.localStorage) { global.localStorage.setItem(WH.STORE_KEY, JSON.stringify(s)); } } catch (e) { /* 保存できなくても あそべる */ } }
+  WH.loadState = loadState; WH.saveState = saveState;
+
+  /* 1まわりの あとの レベルの 上げ下げ＝はじめて正解が 8わり以上なら 上へ・4わり以下なら 下へ（K10） */
+  function nextLevel(level, firstOk, total) {
+    if (total <= 0) { return level; }
+    if (firstOk >= Math.ceil(total * 0.8) && level < 3) { return level + 1; }
+    if (firstOk <= Math.floor(total * 0.4) && level > 1) { return level - 1; }
+    return level;
+  }
+  WH.nextLevel = nextLevel;
+  WH.LEVEL_NAME = { 1: 'やさしい', 2: 'ふつう', 3: 'むずかしい' };
+
+  /* ================= ごほうび＝はなしの き（みのりを あつめると きが そだち、いきものが あそびに くる） ================= */
+  var GROW = [0, 6, 14, 24];
+  WH.GROW = GROW;
+  function stageOf(f) { if (f >= GROW[3]) { return 3; } if (f >= GROW[2]) { return 2; } if (f >= GROW[1]) { return 1; } return 0; }
+  WH.stageOf = stageOf;
+  WH.STAGE_NAME = ['たね', 'め', 'わかば', 'おおきな き'];
+  var PICS = [
+    { id: 'sakana', name: 'さかな', draw: function (ctx) {
+      poly(ctx, [[-26, 0], [-42, -15], [-42, 15]], COL.ao, COL.sumi, 2);
+      poly(ctx, [[-16, -11], [-4, -36], [14, -11]], COL.mizu, COL.sumi, 2);
+      ellipse(ctx, -4, 0, 26, 14, COL.ao, COL.sumi, 2);
+      circle(ctx, 10, -4, 4.5, COL.shiro, COL.sumi, 1.5); circle(ctx, 11, -4, 2, COL.sumi);
+      line(ctx, 17, 5, 22, 3, COL.sumi, 2);
+    } },
+    { id: 'katatsumuri', name: 'かたつむり', draw: function (ctx) {
+      ellipse(ctx, 6, 18, 30, 8, COL.murasaki, COL.sumi, 2); circle(ctx, 26, 8, 9, COL.murasaki, COL.sumi, 2);
+      line(ctx, 29, 0, 33, -12, COL.sumi, 2.5); circle(ctx, 33, -13, 2.5, COL.sumi); line(ctx, 23, 0, 21, -10, COL.sumi, 2.5); circle(ctx, 21, -11, 2.5, COL.sumi);
+      circle(ctx, -10, -2, 20, COL.daidai, COL.sumi, 2);
+      ctx.beginPath(); ctx.strokeStyle = COL.sumi; ctx.lineWidth = 2.5; ctx.arc(-10, -2, 12, 0, Math.PI * 1.5); ctx.stroke();
+      ctx.beginPath(); ctx.arc(-8, -4, 5, 0, Math.PI * 1.5); ctx.stroke(); circle(ctx, 29, 6, 1.8, COL.sumi);
+    } },
+    { id: 'tentoumushi', name: 'てんとうむし', draw: function (ctx) {
+      line(ctx, -16, -6, -30, -14, COL.sumi, 2.5); line(ctx, -20, 6, -34, 8, COL.sumi, 2.5); line(ctx, -14, 18, -26, 28, COL.sumi, 2.5);
+      line(ctx, 16, -6, 30, -14, COL.sumi, 2.5); line(ctx, 20, 6, 34, 8, COL.sumi, 2.5); line(ctx, 14, 18, 26, 28, COL.sumi, 2.5);
+      circle(ctx, 0, 4, 23, COL.aka, COL.sumi, 2); circle(ctx, 0, -18, 10, COL.sumi); line(ctx, 0, -10, 0, 27, COL.sumi, 2);
+      circle(ctx, -11, -2, 5.5, COL.sumi); circle(ctx, 10, 9, 5.5, COL.sumi); circle(ctx, -8, 16, 4.5, COL.sumi); circle(ctx, 11, -4, 4, COL.sumi);
+    } },
+    { id: 'kotori', name: 'ことり', draw: function (ctx) {
+      poly(ctx, [[-16, 2], [-38, -10], [-34, 8]], COL.mizu, COL.sumi, 2);
+      line(ctx, 4, 18, 4, 30, COL.sumi, 2.5); line(ctx, -6, 18, -6, 30, COL.sumi, 2.5);
+      ellipse(ctx, 0, 4, 21, 15, COL.mizu, COL.sumi, 2); ellipse(ctx, -3, 3, 12, 6, COL.ao, COL.sumi, 1.5);
+      circle(ctx, 17, -13, 11, COL.mizu, COL.sumi, 2); poly(ctx, [[26, -15], [38, -11], [26, -7]], COL.daidai, COL.sumi, 1.5); circle(ctx, 19, -15, 2.2, COL.sumi);
+    } },
+    { id: 'imomushi', name: 'いもむし', draw: function (ctx) {
+      circle(ctx, -28, 10, 9, COL.midori, COL.sumi, 2); circle(ctx, -13, 7, 10, COL.midori, COL.sumi, 2); circle(ctx, 3, 5, 11, COL.midori, COL.sumi, 2);
+      line(ctx, 25, -10, 30, -24, COL.sumi, 2.5); circle(ctx, 30, -25, 2.5, COL.sumi); line(ctx, 18, -10, 16, -22, COL.sumi, 2.5); circle(ctx, 16, -23, 2.5, COL.sumi);
+      circle(ctx, 22, 1, 13, COL.midori, COL.sumi, 2); circle(ctx, 27, -3, 2.5, COL.sumi); line(ctx, 27, 5, 31, 7, COL.sumi, 2);
+    } },
+    { id: 'kabutomushi', name: 'かぶとむし', draw: function (ctx) {
+      line(ctx, -12, -2, -30, -12, COL.sumi, 3); line(ctx, -14, 8, -34, 12, COL.sumi, 3); line(ctx, -8, 18, -26, 30, COL.sumi, 3);
+      line(ctx, 12, -2, 30, -12, COL.sumi, 3); line(ctx, 14, 8, 34, 12, COL.sumi, 3); line(ctx, 8, 18, 26, 30, COL.sumi, 3);
+      ellipse(ctx, 0, 8, 20, 24, '#5a3b1e', COL.sumi, 2); line(ctx, 0, -10, 0, 30, COL.sumi, 1.5);
+      ellipse(ctx, 0, -18, 12, 9, '#5a3b1e', COL.sumi, 2);
+      line(ctx, 0, -24, 0, -40, COL.sumi, 4); line(ctx, 0, -40, -9, -48, COL.sumi, 3.5); line(ctx, 0, -40, 9, -48, COL.sumi, 3.5);
+      circle(ctx, -5, -19, 1.8, COL.shiro); circle(ctx, 5, -19, 1.8, COL.shiro);
+    } },
+    { id: 'kaeru', name: 'かえる', draw: function (ctx) {
+      ellipse(ctx, -24, 18, 12, 7, COL.midori, COL.sumi, 2); ellipse(ctx, 24, 18, 12, 7, COL.midori, COL.sumi, 2);
+      ellipse(ctx, 0, 6, 28, 20, COL.midori, COL.sumi, 2);
+      circle(ctx, -13, -14, 9, COL.midori, COL.sumi, 2); circle(ctx, 13, -14, 9, COL.midori, COL.sumi, 2);
+      circle(ctx, -13, -14, 4.5, COL.shiro, COL.sumi, 1); circle(ctx, 13, -14, 4.5, COL.shiro, COL.sumi, 1); circle(ctx, -12, -14, 2, COL.sumi); circle(ctx, 14, -14, 2, COL.sumi);
+      ctx.beginPath(); ctx.arc(0, 2, 12, Math.PI * 0.15, Math.PI * 0.85); ctx.strokeStyle = COL.sumi; ctx.lineWidth = 2; ctx.stroke();
+    } },
+    { id: 'chou', name: 'ちょう', draw: function (ctx) {
+      ellipse(ctx, -20, -10, 18, 15, COL.daidai, COL.sumi, 2); ellipse(ctx, 20, -10, 18, 15, COL.daidai, COL.sumi, 2);
+      ellipse(ctx, -16, 14, 13, 11, COL.ki, COL.sumi, 2); ellipse(ctx, 16, 14, 13, 11, COL.ki, COL.sumi, 2);
+      circle(ctx, -22, -10, 5, COL.shiro, COL.sumi, 1.5); circle(ctx, 22, -10, 5, COL.shiro, COL.sumi, 1.5);
+      ellipse(ctx, 0, 2, 5, 22, COL.sumi); line(ctx, -2, -20, -10, -34, COL.sumi, 2); line(ctx, 2, -20, 10, -34, COL.sumi, 2);
+    } }
+  ];
+  /* 9ひき目から＝絵（img/zukan/<id>.png・甲虫44種）。絵は 読めたら 描く。読めるまでは ？ */
+  var ZUKAN_IMGS = [
+    ['herakuresu_ookabuto', 'ヘラクレスオオカブト'], ['kookasasu_ookabuto', 'コーカサスオオカブト'], ['atorasu_ookabuto', 'アトラスオオカブト'], ['neputyuun_ookabuto', 'ネプチューンオオカブト'], ['satan_ookabuto', 'サタンオオカブト'],
+    ['guranto_shirokabuto', 'グラントシロカブト'], ['gohonzuno_kabuto', 'ゴホンヅノカブト'], ['akuteon_zoukabuto', 'アクティオンゾウカブト'], ['kentaurusu_ookabuto', 'ケンタウルスオオカブト'], ['sai_kabuto', 'サイカブト'],
+    ['nokogiri_kuwagata', 'ノコギリクワガタ'], ['ookuwagata', 'オオクワガタ'], ['miyama_kuwagata', 'ミヤマクワガタ'], ['kokuwagata', 'コクワガタ'], ['hirata_kuwagata', 'ヒラタクワガタ'],
+    ['akaashi_kuwagata', 'アカアシクワガタ'], ['suji_kuwagata', 'スジクワガタ'], ['girafa_nokogiri', 'ギラファノコギリクワガタ'], ['nijiiro_kuwagata', 'ニジイロクワガタ'], ['tarandusu_ootsuya', 'タランドゥスオオツヤクワガタ'],
+    ['parawan_oohirata', 'パラワンオオヒラタクワガタ'], ['sumatora_oohirata', 'スマトラオオヒラタクワガタ'], ['ougon_oni_kuwagata', 'オウゴンオニクワガタ'], ['erafusu_hosoaka', 'エラフスホソアカクワガタ'], ['mengata_kuwagata', 'メンガタクワガタ'],
+    ['mandiburarisu_futamata', 'マンディブラリスフタマタクワガタ'], ['antaeusu_ookuwagata', 'アンタエウスオオクワガタ'], ['yooroppa_miyama', 'ヨーロッパミヤマクワガタ'], ['rakodaaru_tsuya', 'ラコダールツヤクワガタ'],
+    ['goraiasu_ootsunohanamuguri', 'ゴライアスオオツノハナムグリ'], ['tenaga_kogane', 'テナガコガネ'], ['kanabun', 'カナブン'], ['yamato_tamamushi', 'ヤマトタマムシ'], ['gengorou', 'ゲンゴロウ'],
+    ['genji_botaru', 'ゲンジボタル'], ['gomadara_kamikiri', 'ゴマダラカミキリ'], ['ruriboshi_kamikiri', 'ルリボシカミキリ'], ['oo_osamushi', 'オオオサムシ'], ['hanmyou', 'ハンミョウ'],
+    ['midori_senchikogane', 'ミドリセンチコガネ'], ['daikoku_kogane', 'ダイコクコガネ'], ['sukarabe', 'スカラベ'], ['oozoumushi', 'オオゾウムシ'], ['mizusumashi', 'ミズスマシ']
+  ];
+  var ZIMG = {};
+  WH.onImgReady = null;
+  function zimg(id) {
+    var im;
+    if (!ZIMG[id]) {
+      im = new global.Image();
+      im.onload = function () { if (WH.onImgReady) { try { WH.onImgReady(id); } catch (e) { /* 描き直しは 任意 */ } } };
+      im.src = 'img/zukan/' + id + '.png';
+      ZIMG[id] = im;
+    }
+    return ZIMG[id];
+  }
+  WH.preloadZukan = function () { var i; for (i = 0; i < ZUKAN_IMGS.length; i++) { zimg(ZUKAN_IMGS[i][0]); } };
+  function drawZukanImg(ctx, id) {
+    var im = zimg(id);
+    if (im.complete && im.naturalWidth > 0) { ctx.drawImage(im, -50, -50, 100, 100); }
+    else { circle(ctx, 0, 0, 36, COL.kami, COL.sumi, 2.5); text(ctx, '?', 0, 2, 40, COL.sumi); }
+  }
+  (function () {
+    var i;
+    for (i = 0; i < ZUKAN_IMGS.length; i++) {
+      PICS.push({ id: ZUKAN_IMGS[i][0], name: ZUKAN_IMGS[i][1], img: true, draw: (function (id) { return function (ctx) { drawZukanImg(ctx, id); }; })(ZUKAN_IMGS[i][0]) });
+    }
+  })();
+  WH.ZUKAN_IMGS = ZUKAN_IMGS;
+  WH.PICS = PICS;
+  var PIC_BY_ID = {};
+  (function () { var i; for (i = 0; i < PICS.length; i++) { PIC_BY_ID[PICS[i].id] = PICS[i]; } })();
+  WH.picById = function (id) { return PIC_BY_ID[id]; };
+
+  function addFruits(s, n) {
+    var events = [], before = stageOf(s.cFruits), after, id;
+    s.total += n; s.cFruits += n;
+    while (s.cFruits >= GROW[3]) {
+      id = PICS[s.cIndex % PICS.length].id;
+      s.zukan.push(id); events.push({ kind: 'visitor', id: id });
+      s.cFruits -= GROW[3]; s.cIndex += 1;
+      if (s.cIndex % PICS.length === 0) { s.lap += 1; events.push({ kind: 'lap', lap: s.lap }); }
+      before = 0;
+    }
+    after = stageOf(s.cFruits);
+    if (after > before) { events.push({ kind: 'stage', stage: after }); }
+    return events;
+  }
+  WH.addFruits = addFruits;
+  var RANKS = [[0, 'はなしの みならい'], [20, 'はなしの なかま'], [50, 'はなしの めいじん'], [100, 'はなしの はかせ'], [200, 'はなしの たつじん']];
+  function rankOf(total) { var i, name = RANKS[0][1]; for (i = 0; i < RANKS.length; i++) { if (total >= RANKS[i][0]) { name = RANKS[i][1]; } } return name; }
+  WH.rankOf = rankOf;
+  function nextRankAt(total) { var i; for (i = 0; i < RANKS.length; i++) { if (total < RANKS[i][0]) { return RANKS[i][0]; } } return null; }
+  WH.nextRankAt = nextRankAt;
+
+  /* き＝たね → め → わかば → おおきな き（みのりの かず）。いきものは きの 上に */
+  function drawTree(ctx, size, stage, picId, fruits) {
+    var s = size / 100, i, n, a;
+    ctx.save(); ctx.scale(s, s); ctx.lineJoin = 'round';
+    ellipse(ctx, 0, 40, 40, 8, '#c9a06b', COL.sumi, 1.5);
+    if (stage === 0) { ellipse(ctx, 0, 30, 10, 7, COL.cha, COL.sumi, 2); circle(ctx, -3, 28, 1.5, COL.ki); }
+    else if (stage === 1) { line(ctx, 0, 38, 0, 10, COL.midori, 4); ellipse(ctx, -9, 12, 9, 5, '#8fd16a', COL.sumi, 1.5); ellipse(ctx, 9, 6, 9, 5, '#8fd16a', COL.sumi, 1.5); }
+    else if (stage === 2) {
+      line(ctx, 0, 40, 0, -2, COL.cha, 6);
+      for (i = 0; i < 4; i++) { a = -Math.PI / 2 + (i - 1.5) * 0.7; ellipse(ctx, Math.cos(a) * 14, -4 + Math.sin(a) * 10, 11, 7, '#8fd16a', COL.sumi, 1.5); }
+    } else {
+      line(ctx, 0, 40, 0, 0, COL.cha, 9);
+      circle(ctx, -16, -4, 16, '#58b56a', COL.sumi, 2); circle(ctx, 16, -4, 16, '#58b56a', COL.sumi, 2); circle(ctx, 0, -20, 18, '#8fd16a', COL.sumi, 2);
+      n = Math.min(6, Math.floor((fruits || 0) / 4));
+      for (i = 0; i < n; i++) { circle(ctx, -18 + i * 7.2, -8 + ((i % 2) ? 8 : -6), 4, COL.aka, COL.sumi, 1.2); }
+    }
+    ctx.restore();
+    if (stage === 3 && picId) { ctx.save(); ctx.translate(0, -size * 0.52); ctx.scale(s * 0.55, s * 0.55); PIC_BY_ID[picId].draw(ctx); ctx.restore(); }
+  }
+  WH.drawTree = drawTree;
+  function paintTree(canvas, stage, picId, fruits) {
+    var c = setupCanvas(canvas);
+    c.ctx.translate(c.w / 2, c.h / 2 + c.h * 0.08); drawTree(c.ctx, Math.min(c.w, c.h) * 0.8, stage, picId, fruits);
+  }
+  WH.paintTree = paintTree;
+  function paintPic(canvas, picId) {
+    var c = setupCanvas(canvas);
+    c.ctx.translate(c.w / 2, c.h / 2); c.ctx.scale(Math.min(c.w, c.h) / 110, Math.min(c.w, c.h) / 110); PIC_BY_ID[picId].draw(c.ctx);
+  }
+  WH.paintPic = paintPic;
+
+  /* ================= 子どもの 画面に 出さない ことば（K22）と 否定形の 約束（K24） ================= */
+  WH.BAN_WORDS = ['てんさい', 'あたまがいい', 'よわい', 'にがて', 'すごすぎる', 'だめ', 'ばか', 'おそい', 'へた', 'しっぱい'];
+  WH.banHits = function (s) { var i, out = [], t = String(s).replace(/\s+/g, ''); for (i = 0; i < WH.BAN_WORDS.length; i++) { if (t.indexOf(WH.BAN_WORDS[i]) >= 0) { out.push(WH.BAN_WORDS[i]); } } return out; };
+  WH.negHits = function (s) { var m = String(s).match(/(しない|しないで|だめ|いけません|やめて|ちゃだめ)/g); return m ? m : []; };
+
+  global.WH = WH;
+})(typeof window !== 'undefined' ? window : this);
+</script>
+<script>
+/* わけを はなそう ―― もんだいの 型（作る・描く・ことば・自己点検）。古い Safari で動く書き方だけ。
+   型（1対1の 口頭試問の 練習帳 20問と、公開されている 出題例 から）＝
+     himo        ひも（むすびめを ほどくと どれが ながい）      … 練習帳1（未測量）
+     kurabe      くらべる（のんだ ジュース・まめの やま・おおきい じゅん） … 練習帳2・3、出題例（長さ・水量・大小）
+     shiso       シーソー（2ばんめに おもい・かるい）           … 練習帳4（推理）
+     kazoe       かぞえる（いくつ・ちがい・おなじ かず）          … 練習帳7・8・9（数）
+     wakeru      わける（ずつ・おなじ かずずつ・あまり）         … 練習帳10、出題例（おはじき・ドングリ）
+     kazuhanashi かずの おはなし（ふえて へって いま いくつ）     … 練習帳11（数・聞き取り）
+     nakama      なかま（はずれ・にている ところ・2つに わける）  … 練習帳5・6、出題例（分類＋理由）
+     onajie      おなじ え（ほとんど おなじ 絵から 同じものを）   … 練習帳12（図形・細部）
+     katachi     かたち（あわせる・きれない・わける せん・おりがみ） … 練習帳13・14・16・17・20、出題例（構成・折り）
+     ana         あなに ぴったり（こうしの あなに あう もの）     … 練習帳15
+     hanashi     おはなし（えで おはなし・しつもん・どっちが すき） … 出題例（お話作り・口頭質問）＝こたえの ない もんだい */
+(function (global) {
+  'use strict';
+  var WH = global.WH, COL = WH.COL, D = WH.draw, rnd = WH.rnd, ri = WH.ri, pick = WH.pick, shuffle = WH.shuffle, uniqNums = WH.uniqNums;
+  var itemsWhere = WH.itemsWhere, itemById = WH.itemById;
+  var NAMES = ['はなこさん', 'たろうくん', 'ももちゃん', 'けんくん'];
+
+  /* ================= 1 ひも ================= */
+  var HIMO_LV = { 1: { n: 3, asks: ['long', 'short'] }, 2: { n: 4, asks: ['long', 'short', 'second'] }, 3: { n: 5, asks: ['long', 'short', 'second', 'secondshort'] } };
+  function himoAnswer(knots, ask) {
+    var idx = [], i;
+    for (i = 0; i < knots.length; i++) { idx.push(i); }
+    idx.sort(function (a, b) { return knots[b] - knots[a]; });   /* おおい じゅん＝ながい じゅん */
+    if (ask === 'long') { return idx[0]; }
+    if (ask === 'second') { return idx[1]; }
+    if (ask === 'short') { return idx[idx.length - 1]; }
+    return idx[idx.length - 2];
+  }
+  function makeHimo(level) {
+    var lv = HIMO_LV[level], knots = shuffle([0, 1, 2, 3, 4, 5]).slice(0, lv.n), ask = pick(lv.asks), i, pos = [];
+    for (i = 0; i < lv.n; i++) { pos.push(shuffle([0.18, 0.32, 0.46, 0.6, 0.74, 0.86]).slice(0, knots[i]).sort(function (a, b) { return a - b; })); }
+    return { g: 'himo', level: level, knots: knots, pos: pos, ask: ask, choices: knots.slice(), answerIndex: himoAnswer(knots, ask), kind: 'choose', cType: 'wide', v: ri(2) };
+  }
+  function paintHimoChoice(canvas, q, i, hint) {
+    var c = WH.setupCanvas(canvas), y = c.h / 2, x0 = 14, x1 = c.w - (hint ? 54 : 14), k, x;
+    c.ctx.fillStyle = COL.kami; c.ctx.fillRect(0, 0, c.w, c.h);
+    D.line(c.ctx, x0, y, x1, y, '#b08a5a', 7);
+    for (k = 0; k < q.pos[i].length; k++) {
+      x = x0 + (x1 - x0) * q.pos[i][k];
+      D.circle(c.ctx, x, y - 6, 7, COL.kami, '#8a5a2b', 3); D.circle(c.ctx, x + 6, y + 4, 5, COL.kami, '#8a5a2b', 3);
+    }
+    if (hint) { D.text(c.ctx, String(q.knots[i]), c.w - 26, y, 22, COL.daidai); }
+  }
+
+  /* ================= 2 くらべる ================= */
+  var KURABE_LV = { 1: { n: 4, subs: ['cup'], asks: ['most'] }, 2: { n: 5, subs: ['cup', 'pile'], asks: ['most', 'least'] }, 3: { n: 5, subs: ['cup', 'pile', 'narabe'], asks: ['most', 'least', 'second'] } };
+  function orderDesc(vals) { var idx = [], i; for (i = 0; i < vals.length; i++) { idx.push(i); } idx.sort(function (a, b) { return vals[b] - vals[a]; }); return idx; }
+  function makeKurabe(level) {
+    var lv = KURABE_LV[level], sub = pick(lv.subs), n = lv.n, vals, ask, drunk, ord, q, i;
+    if (sub === 'narabe') {
+      vals = shuffle([0.5, 0.65, 0.8, 1.0]);
+      return { g: 'kurabe', sub: sub, level: level, vals: vals, kind: 'order', choices: vals.slice(), answerOrder: orderDesc(vals), cType: 'canvas', v: ri(2) };
+    }
+    vals = shuffle([0.12, 0.28, 0.44, 0.6, 0.76, 0.9]).slice(0, n);
+    ask = pick(lv.asks);
+    if (sub === 'cup') {
+      drunk = []; for (i = 0; i < n; i++) { drunk.push(1 - vals[i]); }   /* のんだ 量＝のこりの 逆 */
+      ord = orderDesc(drunk);
+    } else { ord = orderDesc(vals); }
+    q = { g: 'kurabe', sub: sub, level: level, vals: vals, ask: ask, kind: 'choose', choices: vals.slice(), cType: 'canvas', v: ri(2) };
+    q.answerIndex = ask === 'most' ? ord[0] : (ask === 'least' ? ord[n - 1] : ord[1]);
+    return q;
+  }
+  function paintKurabeChoice(canvas, q, i, hint) {
+    var c = WH.setupCanvas(canvas), w = c.w, h = c.h, v = q.vals[i], top, r;
+    c.ctx.fillStyle = COL.kami; c.ctx.fillRect(0, 0, w, h);
+    if (q.sub === 'cup') {
+      top = h * 0.14;
+      D.poly(c.ctx, [[w * 0.28, top], [w * 0.72, top], [w * 0.66, h * 0.9], [w * 0.34, h * 0.9]], COL.shiro, COL.sumi, 2.5);
+      c.ctx.save(); c.ctx.beginPath(); c.ctx.moveTo(w * 0.28, top); c.ctx.lineTo(w * 0.72, top); c.ctx.lineTo(w * 0.66, h * 0.9); c.ctx.lineTo(w * 0.34, h * 0.9); c.ctx.closePath(); c.ctx.clip();
+      c.ctx.fillStyle = COL.daidai; c.ctx.fillRect(0, h * 0.9 - (h * 0.76) * v, w, h);
+      c.ctx.restore();
+      D.line(c.ctx, w * 0.6, top - 10, w * 0.44, h * 0.84, '#ffffff', 6); D.line(c.ctx, w * 0.6, top - 10, w * 0.44, h * 0.84, COL.ao, 3);
+      if (hint) { D.text(c.ctx, 'のこり', w / 2, h * 0.97 - 8, 12, COL.daidai); }
+    } else if (q.sub === 'pile') {
+      r = h * 0.22 + h * 0.3 * v;
+      D.ellipse(c.ctx, w / 2, h * 0.78, w * 0.4, h * 0.1, COL.shiro, COL.sumi, 2.5);
+      c.ctx.save(); c.ctx.beginPath(); c.ctx.rect(0, 0, w, h * 0.78); c.ctx.clip();
+      D.ellipse(c.ctx, w / 2, h * 0.78, w * 0.36, r, '#c9b27a', COL.sumi, 2);
+      c.ctx.restore();
+      D.ellipse(c.ctx, w / 2, h * 0.78, w * 0.4, h * 0.1, null, COL.sumi, 2.5);
+    } else {
+      r = Math.min(w, h) * 0.4 * v;
+      D.circle(c.ctx, w / 2, h / 2 + 4, r, COL.aka, COL.sumi, 2.5); D.line(c.ctx, w / 2, h / 2 + 4 - r, w / 2 + 4, h / 2 - r - 8, '#6a4a2a', 3);
+    }
+  }
+
+  /* ================= 3 シーソー（ちえの もり と 同じ しくみ） ================= */
+  var SHISO_KINDS = ['kuro', 'sankaku', 'shikaku', 'hoshi', 'maru'];
+  var SHISO_LV = { 1: { items: 3, asks: ['heavy'] }, 2: { items: 4, asks: ['heavy', 'light'] }, 3: { items: 4, asks: ['heavy', 'light', 'second', 'secondlight'] } };
+  function makeShiso(level) {
+    var lv = SHISO_LV[level], kinds = shuffle(SHISO_KINDS).slice(0, lv.items), order = shuffle(kinds), pairs = [], i, ask, answer, choices;
+    for (i = 0; i < order.length - 1; i++) {
+      pairs.push(rnd() < 0.5 ? { left: order[i], right: order[i + 1], down: 'left' } : { left: order[i + 1], right: order[i], down: 'right' });
+    }
+    pairs = shuffle(pairs);
+    ask = pick(lv.asks);
+    answer = ask === 'heavy' ? order[0] : (ask === 'light' ? order[order.length - 1] : (ask === 'second' ? order[1] : order[order.length - 2]));
+    choices = shuffle(kinds);
+    return { g: 'shiso', level: level, pairs: pairs, order: order, ask: ask, choices: choices, answerIndex: choices.indexOf(answer), kind: 'choose', cType: 'shape', v: ri(2) };
+  }
+  function paintShiso(canvas, q, hint) {
+    var c = WH.setupCanvas(canvas), i, p, rowH = c.h / q.pairs.length, cx = c.w / 2, half = c.w * 0.36, tilt = 0.2, cy, r = Math.min(rowH * 0.22, c.w * 0.08), dx, dy;
+    WH.paper(c.ctx, c.w, c.h);
+    for (i = 0; i < q.pairs.length; i++) {
+      p = q.pairs[i]; cy = rowH * (i + 0.62);
+      D.poly(c.ctx, [[cx, cy - rowH * 0.02], [cx - rowH * 0.16, cy + rowH * 0.3], [cx + rowH * 0.16, cy + rowH * 0.3]], COL.hai, COL.sumi, 2);
+      dy = half * tilt * (p.down === 'left' ? 1 : -1);
+      D.line(c.ctx, cx - half, cy + dy, cx + half, cy - dy, COL.sumi, 5);
+      dx = half * 0.86;
+      c.ctx.save(); c.ctx.translate(cx - dx, cy + dy * 0.86 - r * 1.3); D.shape(c.ctx, p.left, r); c.ctx.restore();
+      c.ctx.save(); c.ctx.translate(cx + dx, cy - dy * 0.86 - r * 1.3); D.shape(c.ctx, p.right, r); c.ctx.restore();
+      if (hint) { c.ctx.save(); c.ctx.translate(p.down === 'left' ? cx - dx : cx + dx, (p.down === 'left' ? cy + dy : cy - dy) * 0.86 + cy * 0.14 - r * 1.3); D.circle(c.ctx, 0, 0, r * 1.7, null, COL.daidai, 4); c.ctx.restore(); }
+    }
+  }
+  function paintShape(canvas, kind) { var c = WH.setupCanvas(canvas), r = Math.min(c.w, c.h) * 0.3; c.ctx.translate(c.w / 2, c.h / 2); D.shape(c.ctx, kind, r); }
+
+  /* ================= 4 かぞえる ================= */
+  var KAZOE_KINDS = ['kuro', 'maru', 'sankaku', 'batsu', 'shikaku', 'hoshi'];
+  var KAZOE_LV = { 1: { total: [8, 10], target: [3, 6], kinds: 2, subs: ['count'] }, 2: { total: [12, 15], target: [5, 9], kinds: 3, subs: ['count', 'diff', 'same'] }, 3: { total: [16, 20], target: [8, 14], kinds: 3, subs: ['count', 'diff', 'same'] } };
+  function scatter(total, cols, rows) {
+    var spots = [], i, out = [], r, c;
+    for (i = 0; i < cols * rows; i++) { spots.push(i); }
+    spots = shuffle(spots).slice(0, total);
+    for (i = 0; i < total; i++) { r = Math.floor(spots[i] / cols); c = spots[i] % cols; out.push({ x: (c + 0.5) / cols + (rnd() - 0.5) * 0.08, y: (r + 0.5) / rows + (rnd() - 0.5) * 0.08 }); }
+    return out;
+  }
+  function makeKazoe(level) {
+    var lv = KAZOE_LV[level], sub = pick(lv.subs), total, target, kinds, items = [], i, k, kindList, a, b, q, n, counts, pts;
+    if (sub === 'count') {
+      total = lv.total[0] + ri(lv.total[1] - lv.total[0] + 1);
+      target = lv.target[0] + ri(lv.target[1] - lv.target[0] + 1);
+      if (target > total - 2) { target = total - 2; }
+      kindList = shuffle(KAZOE_KINDS); kinds = kindList.slice(0, lv.kinds + 1); k = kinds[0];
+      pts = scatter(total, 5, 5);
+      for (i = 0; i < total; i++) { items.push({ x: pts[i].x, y: pts[i].y, kind: i < target ? k : kinds[1 + ri(kinds.length - 1)] }); }
+      items = shuffle(items);
+      return { g: 'kazoe', sub: sub, level: level, items: items, target: k, answer: target, choices: uniqNums(target, 4, 1, 20), kind: 'choose', cType: 'num', numeric: true, v: ri(2) };
+    }
+    if (sub === 'diff') {
+      k = pick(KAZOE_KINDS);
+      a = 3 + ri(level === 3 ? 8 : 5); b = a + 1 + ri(level === 3 ? 4 : 3); if (b > 12) { b = 12; } if (b === a) { b = a + 1; }
+      if (rnd() < 0.5) { n = a; a = b; b = n; }
+      return { g: 'kazoe', sub: sub, level: level, kind: 'choose', target: k, left: a, right: b, ptsL: scatter(a, 4, 3), ptsR: scatter(b, 4, 3), answer: Math.abs(a - b), choices: uniqNums(Math.abs(a - b), 4, 1, 8), cType: 'num', numeric: true, v: ri(2) };
+    }
+    /* same＝ひだりと おなじ かずの はこを えらぶ（3つ） */
+    k = pick(KAZOE_KINDS); n = (level === 3 ? 6 : 4) + ri(4);
+    counts = shuffle([n, n + 1, n - 1, n + 2]).slice(0, 3); if (counts.indexOf(n) < 0) { counts[0] = n; counts = shuffle(counts); }
+    q = { g: 'kazoe', sub: sub, level: level, kind: 'choose', target: k, left: n, ptsL: scatter(n, 4, 3), counts: counts, pts: [], choices: counts.slice(), answerIndex: counts.indexOf(n), cType: 'canvas', v: ri(2) };
+    for (i = 0; i < 3; i++) { q.pts.push(scatter(counts[i], 4, 3)); }
+    return q;
+  }
+  function paintDotsIn(ctx, pts, kind, w, h, r, hint) {
+    var i;
+    if (hint) { for (i = 1; i < 3; i++) { D.line(ctx, 6, h * i / 3, w - 6, h * i / 3, '#f3c98a', 2); } }
+    for (i = 0; i < pts.length; i++) { ctx.save(); ctx.translate(pts[i].x * w, pts[i].y * h); D.shape(ctx, kind, r); ctx.restore(); }
+  }
+  function paintKazoeStem(canvas, q, hint) {
+    var c = WH.setupCanvas(canvas), i, r = Math.min(c.w, c.h) * 0.045, items, half;
+    WH.paper(c.ctx, c.w, c.h);
+    if (q.sub === 'count') {
+      if (hint) { for (i = 1; i < 5; i++) { D.line(c.ctx, 8, c.h * i / 5, c.w - 8, c.h * i / 5, '#f3c98a', 2); } }
+      items = q.items;
+      for (i = 0; i < items.length; i++) { c.ctx.save(); c.ctx.translate(items[i].x * c.w, items[i].y * c.h); D.shape(c.ctx, items[i].kind, r); c.ctx.restore(); }
+      return;
+    }
+    if (q.sub === 'diff') {
+      half = c.w / 2;
+      D.line(c.ctx, half, 8, half, c.h - 8, COL.usui, 2);
+      c.ctx.save(); c.ctx.translate(0, 0); paintDotsIn(c.ctx, q.ptsL, q.target, half, c.h, r * 1.1, hint); c.ctx.restore();
+      c.ctx.save(); c.ctx.translate(half, 0); paintDotsIn(c.ctx, q.ptsR, q.target, half, c.h, r * 1.1, hint); c.ctx.restore();
+      if (hint) { D.text(c.ctx, String(q.left), half / 2, c.h - 14, 20, COL.daidai); D.text(c.ctx, String(q.right), half * 1.5, c.h - 14, 20, COL.daidai); }
+      return;
+    }
+    paintDotsIn(c.ctx, q.ptsL, q.target, c.w, c.h, r * 1.4, hint);
+    if (hint) { D.text(c.ctx, String(q.left), c.w - 20, c.h - 16, 20, COL.daidai); }
+  }
+  function paintKazoeChoice(canvas, q, i, hint) {
+    var c = WH.setupCanvas(canvas);
+    WH.paper(c.ctx, c.w, c.h, COL.hai);
+    paintDotsIn(c.ctx, q.pts[i], q.target, c.w, c.h, Math.min(c.w, c.h) * 0.07, hint);
+    if (hint) { D.text(c.ctx, String(q.counts[i]), c.w - 16, c.h - 14, 18, COL.daidai); }
+  }
+
+  /* ================= 5 わける ================= */
+  var WAKERU_LV = { 1: { subs: ['zutsu'], people: [2, 3], each: [2, 2] }, 2: { subs: ['zutsu', 'hitoshiku'], people: [2, 4], each: [2, 3] }, 3: { subs: ['zutsu', 'hitoshiku', 'amari'], people: [3, 4], each: [2, 3] } };
+  var WAKERU_ITEMS = ['ringo', 'ichigo', 'mikan', 'banana', 'kuri', 'kaki'];
+  function makeWakeru(level) {
+    var lv = WAKERU_LV[level], sub = pick(lv.subs), n = lv.people[0] + ri(lv.people[1] - lv.people[0] + 1), e = lv.each[0] + ri(lv.each[1] - lv.each[0] + 1), it = pick(WAKERU_ITEMS), q;
+    if (sub === 'zutsu') { q = { answer: n * e, total: n * e }; }
+    else if (sub === 'hitoshiku') { q = { answer: e, total: n * e }; }
+    else { q = { answer: 1 + ri(Math.min(3, n - 1)), total: 0 }; q.total = n + q.answer; }
+    q.g = 'wakeru'; q.sub = sub; q.level = level; q.people = n; q.each = e; q.item = it; q.kind = 'choose'; q.cType = 'num'; q.numeric = true; q.v = ri(2);
+    q.choices = uniqNums(q.answer, 4, sub === 'zutsu' ? 2 : 1, sub === 'zutsu' ? 16 : 9);
+    return q;
+  }
+  function drawFace(ctx, x, y, r, k) {
+    D.circle(ctx, x, y, r, '#fde8d0', COL.sumi, 2);
+    if (k % 2) { D.ellipse(ctx, x, y - r * 0.55, r * 0.9, r * 0.45, '#5a3b1e'); }
+    D.circle(ctx, x - r * 0.3, y - r * 0.1, r * 0.08, COL.sumi); D.circle(ctx, x + r * 0.3, y - r * 0.1, r * 0.08, COL.sumi);
+    ctx.beginPath(); ctx.arc(x, y + r * 0.2, r * 0.35, Math.PI * 0.15, Math.PI * 0.85); ctx.strokeStyle = COL.sumi; ctx.lineWidth = 2; ctx.stroke();
+  }
+  function drawFruit(ctx, x, y, r) { D.circle(ctx, x, y, r, COL.aka, COL.sumi, 1.5); D.line(ctx, x, y - r, x + r * 0.3, y - r * 1.5, '#6a4a2a', 2); }
+  function paintWakeru(canvas, q, hint) {
+    var c = WH.setupCanvas(canvas), i, j, n = q.people, fx, fy = c.h * 0.3, fr = Math.min(c.w / (n * 3.2), c.h * 0.14), step = c.w / n, r = fr * 0.32, cols;
+    WH.paper(c.ctx, c.w, c.h);
+    for (i = 0; i < n; i++) { fx = step * (i + 0.5); drawFace(c.ctx, fx, fy, fr, i); }
+    if (q.sub === 'zutsu') {
+      if (hint) { for (i = 0; i < n; i++) { for (j = 0; j < q.each; j++) { drawFruit(c.ctx, step * (i + 0.5) + (j - (q.each - 1) / 2) * r * 2.6, fy + fr * 1.9, r); } } D.text(c.ctx, q.each + 'こずつ', c.w / 2, c.h * 0.88, 16, COL.daidai); }
+      else { D.text(c.ctx, n + 'にん', c.w / 2, c.h * 0.78, 18, COL.sumi); }
+      return;
+    }
+    /* hitoshiku・amari＝ぜんぶの みのりを 下に ならべる。ヒント＝ひとりずつ くばる 線 */
+    cols = Math.min(q.total, 8);
+    for (i = 0; i < q.total; i++) {
+      fx = c.w * 0.5 + ((i % cols) - (cols - 1) / 2) * r * 2.8; fy = c.h * 0.66 + Math.floor(i / cols) * r * 2.8;
+      drawFruit(c.ctx, fx, fy, r);
+      if (hint && i < n * (q.sub === 'amari' ? 1 : q.each)) { D.line(c.ctx, fx, fy - r, step * ((i % n) + 0.5), c.h * 0.3 + fr, i < n ? COL.daidai : COL.mizu, 2); }
+      if (hint && q.sub === 'amari' && i >= n) { D.circle(c.ctx, fx, fy, r * 1.8, null, COL.daidai, 3); }
+    }
+  }
+
+  /* ================= 6 かずの おはなし ================= */
+  var STORY_FOOD = ['ringo', 'mikan', 'banana', 'kuri', 'ichigo', 'kaki', 'daikon'];
+  var STEP_WORDS = [['つくりました', 'もらいました', 'かってきました', 'ひろいました'], ['たべました', 'あげました', 'おとしました']];
+  function makeKazuhanashi(level) {
+    var who = shuffle(NAMES), it = itemById(pick(STORY_FOOD)), a, steps = [], v, tries, b, cnt = level === 1 ? 1 : (level === 2 ? 2 : 3), i, ok, txt, q;
+    for (tries = 0; tries < 50; tries++) {
+      a = 2 + ri(5); v = a; steps = []; ok = true;
+      for (i = 0; i < cnt; i++) {
+        b = 2 + ri(level === 3 ? 5 : 4);
+        if (i === 1 || (i === 0 && level === 1 && rnd() < 0.3)) { b = -b; }
+        if (i === 2 && rnd() < 0.5) { b = -b; }
+        v += b;
+        if (v < 0 || v > 12) { ok = false; break; }
+        steps.push(b);
+      }
+      if (ok && v !== a) { break; }
+    }
+    txt = who[0] + 'は、' + it.name + 'を ' + a + 'こ ' + pick(STEP_WORDS[0]) + '。';
+    for (i = 0; i < steps.length; i++) {
+      txt += (i === 0 ? who[1] : (i === 1 ? who[2] : who[3])) + 'が ' + Math.abs(steps[i]) + 'こ ' + (steps[i] > 0 ? pick(STEP_WORDS[0]).replace('きました', 'きてくれました') : pick(STEP_WORDS[1])) + '。';
+    }
+    txt += 'いま、' + it.name + 'は いくつ ありますか。';
+    q = { g: 'kazuhanashi', level: level, item: it.id, start: a, steps: steps, answer: v, storyText: txt, kind: 'choose', cType: 'num', numeric: true, choices: uniqNums(v, 4, 0, 12), v: ri(2) };
+    return q;
+  }
+  function paintKazuhanashi(canvas, q, hint) {
+    var c = WH.setupCanvas(canvas), i, x, n = q.steps.length + 1, step = c.w / n, v = q.start, r = Math.min(step * 0.09, c.h * 0.05);
+    WH.paper(c.ctx, c.w, c.h);
+    if (!hint) { D.text(c.ctx, 'よく きいてね', c.w / 2, c.h / 2, 22, COL.usui); return; }
+    /* 足場＝ふえた・へった を 絵と 数で（1だんずつ） */
+    for (i = 0; i < n; i++) {
+      x = step * (i + 0.5);
+      if (i > 0) { v += q.steps[i - 1]; D.text(c.ctx, (q.steps[i - 1] > 0 ? '+' : '−') + Math.abs(q.steps[i - 1]), x - step / 2, c.h * 0.2, 20, COL.daidai); }
+      drawBalls(c.ctx, x, c.h * 0.55, v, r);
+      D.text(c.ctx, String(v), x, c.h * 0.9, 18, COL.sumi);
+    }
+  }
+  function drawBalls(ctx, x, y, n, r) {
+    var i, perRow = 4, cx, cy;
+    if (n === 0) { D.text(ctx, '0', x, y, r * 2.4, COL.usui); return; }
+    for (i = 0; i < n; i++) {
+      cx = x + ((i % perRow) - Math.min(n, perRow) / 2 + 0.5) * r * 2.3; cy = y + (Math.floor(i / perRow) - (Math.ceil(n / perRow) - 1) / 2) * r * 2.3;
+      drawFruit(ctx, cx, cy, r);
+    }
+  }
+
+  /* ================= 7 なかま ================= */
+  var GROUPS = [
+    { key: 'tabemono', name: 'たべもの', lv: 1, fn: function (it) { return !!it.food; } },
+    { key: 'ikimono', name: 'いきもの', lv: 1, fn: function (it) { return !!it.animal; } },
+    { key: 'norimono', name: 'のりもの', lv: 1, fn: function (it) { return !!it.ride; } },
+    { key: 'hana', name: 'はなや き', lv: 2, fn: function (it) { return !!it.plant; } },
+    { key: 'bunbogu', name: 'ぶんぼうぐ', lv: 2, fn: function (it) { return !!it.bunbogu; } },
+    { key: 'kagu', name: 'いえの なかに ある もの', lv: 2, fn: function (it) { return !!it.kagu; } },
+    { key: 'haru', name: 'はるの もの', lv: 2, fn: function (it) { return it.season === 'haru'; } },
+    { key: 'natsu', name: 'なつの もの', lv: 2, fn: function (it) { return it.season === 'natsu'; } },
+    { key: 'aki', name: 'あきの もの', lv: 2, fn: function (it) { return it.season === 'aki'; } },
+    { key: 'fuyu', name: 'ふゆの もの', lv: 2, fn: function (it) { return it.season === 'fuyu'; } },
+    { key: 'tori', name: 'とり', lv: 3, fn: function (it) { return it.cat === 'tori'; } },
+    { key: 'mushi', name: 'むし', lv: 3, fn: function (it) { return it.cat === 'mushi'; } },
+    { key: 'sakana', name: 'さかな', lv: 3, fn: function (it) { return it.cat === 'sakana'; } },
+    { key: 'kemono', name: 'けもの', lv: 3, fn: function (it) { return it.cat === 'kemono'; } }
+  ];
+  WH.GROUPS = GROUPS;
+  function groupsOf(it) { var i, out = []; for (i = 0; i < GROUPS.length; i++) { if (GROUPS[i].fn(it)) { out.push(GROUPS[i].key); } } return out; }
+  function sharesGroup(a, b) { var ga = groupsOf(a), gb = groupsOf(b), i; for (i = 0; i < ga.length; i++) { if (gb.indexOf(ga[i]) >= 0) { return true; } } return false; }
+  function makeNakama(level) {
+    var subs = level === 1 ? ['hazure'] : (level === 2 ? ['hazure', 'hazure', 'niteiru'] : ['hazure', 'niteiru', 'wakeru2']), sub = pick(subs), tries, g, members, three, pool, odd, i, q, a, b, g2, m2, six, others;
+    if (sub === 'hazure') {
+      for (tries = 0; tries < 200; tries++) {
+        g = pick(GROUPS); if (g.lv > level) { continue; }
+        members = itemsWhere(g.fn); if (members.length < 3) { continue; }
+        three = shuffle(members).slice(0, 3);
+        /* はずれ＝その なかまでは なく、3つの だれとも ほかの なかまを 共有しない（答えが 1つに 決まる） */
+        pool = itemsWhere(function (it) { var k; if (g.fn(it)) { return false; } for (k = 0; k < 3; k++) { if (sharesGroup(it, three[k])) { return false; } } return true; });
+        if (!pool.length) { continue; }
+        /* むずかしい は 近い なかまから（とり の はずれ に むし など） */
+        if (level === 3 && g.lv === 3) { others = itemsWhere(function (it) { return pool.indexOf(it) >= 0 && !!it.animal; }); if (others.length) { pool = others; } }
+        odd = pick(pool);
+        q = { g: 'nakama', sub: sub, level: level, group: g.key, groupName: g.name, kind: 'choose', cType: 'img' };
+        q.choices = shuffle([three[0].id, three[1].id, three[2].id, odd.id]); q.answerIndex = q.choices.indexOf(odd.id); q.v = ri(2);
+        return q;
+      }
+      return null;
+    }
+    if (sub === 'niteiru') {
+      for (tries = 0; tries < 200; tries++) {
+        a = pick(WH.ITEMS); b = pick(WH.ITEMS);
+        if (a.id === b.id || !sharesGroup(a, b)) { continue; }
+        q = { g: 'nakama', sub: sub, level: level, kind: 'open', cType: 'none', pair: [a.id, b.id], same: [], diff: [] };
+        for (i = 0; i < GROUPS.length; i++) { if (GROUPS[i].fn(a) && GROUPS[i].fn(b)) { q.same.push(GROUPS[i].name); } else if (GROUPS[i].fn(a) !== GROUPS[i].fn(b)) { q.diff.push((GROUPS[i].fn(a) ? a.name : b.name) + ' だけ ' + GROUPS[i].name); } }
+        q.v = ri(2);
+        return q;
+      }
+      return null;
+    }
+    /* wakeru2＝6つを 2つの なかまに（どちらの 3つを えらんでも 正解） */
+    for (tries = 0; tries < 300; tries++) {
+      g = pick(GROUPS); g2 = pick(GROUPS); if (g.key === g2.key) { continue; }
+      members = itemsWhere(function (it) { return g.fn(it) && !g2.fn(it); }); m2 = itemsWhere(function (it) { return g2.fn(it) && !g.fn(it); });
+      if (members.length < 3 || m2.length < 3) { continue; }
+      three = shuffle(members).slice(0, 3); others = shuffle(m2).slice(0, 3);
+      /* 3つずつが ほかの なかまを またいで 共有しない（2通り以外の 分け方が 出ない） */
+      ok = true;
+      for (i = 0; i < 3; i++) { for (b = 0; b < 3; b++) { if (sharesGroup(three[i], others[b])) { ok = false; } } }
+      if (!ok) { continue; }
+      six = shuffle([three[0].id, three[1].id, three[2].id, others[0].id, others[1].id, others[2].id]);
+      q = { g: 'nakama', sub: sub, level: level, kind: 'multi', need: 3, cType: 'img', choices: six, groupA: g.name, groupB: g2.name, setA: [], setB: [], v: ri(2) };
+      for (i = 0; i < 6; i++) { if (g.fn(itemById(six[i]))) { q.setA.push(i); } else { q.setB.push(i); } }
+      q.answerSets = [q.setA, q.setB];
+      return q;
+    }
+    return null;
+    var ok;
+  }
+
+  /* ================= 8 おなじ え（ほとんど おなじ 絵） ================= */
+  var FIGS = {
+    ie: { attrs: { yane: 2, mado: 3, tobira: 2, entotsu: 2 }, names: { yane: 'やね', mado: 'まど', tobira: 'とびら', entotsu: 'えんとつ' } },
+    roketto: { attrs: { mado: 3, hane: 2, shima: 3, honoo: 2 }, names: { mado: 'まど', hane: 'はね', shima: 'しましま', honoo: 'ひ' } },
+    robotto: { attrs: { antena: 2, me: 2, botan: 3, ude: 2 }, names: { antena: 'あんてな', me: 'め', botan: 'ぼたん', ude: 'うで' } }
+  };
+  function figSig(a) { var k, s = []; for (k in a) { if (a.hasOwnProperty(k)) { s.push(k + a[k]); } } s.sort(); return s.join('|'); }
+  function makeOnajie(level) {
+    var kind = pick(['ie', 'roketto', 'robotto']), f = FIGS[kind], base = {}, k, keys = [], n = level === 1 ? 3 : (level === 2 ? 4 : 5), cands = [], seen = {}, tries, w, ak, v, q;
+    for (k in f.attrs) { if (f.attrs.hasOwnProperty(k)) { keys.push(k); base[k] = ri(f.attrs[k]); } }
+    seen[figSig(base)] = true;
+    for (tries = 0; tries < 200 && cands.length < n - 1; tries++) {
+      w = {}; for (k = 0; k < keys.length; k++) { w[keys[k]] = base[keys[k]]; }
+      ak = pick(keys); v = (base[ak] + 1 + ri(f.attrs[ak] - 1)) % f.attrs[ak]; w[ak] = v; w.diffKey = ak;
+      if (level === 1 && ak === keys[0] && f.attrs[ak] === 2 && tries < 100 && cands.length > 0) { /* やさしい は ちがいを ばらけさせる */ }
+      if (seen[figSig(w)]) { continue; }
+      seen[figSig(w)] = true; cands.push(w);
+    }
+    if (cands.length < n - 1) { return null; }
+    cands = shuffle([base].concat(cands));
+    q = { g: 'onajie', level: level, fig: kind, base: base, choices: cands, answerIndex: cands.indexOf(base), kind: 'choose', cType: 'canvas', v: ri(2) };
+    return q;
+  }
+  function drawFig(ctx, kind, a, s, markKey) {
+    var i, x, y;
+    ctx.save(); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    if (kind === 'ie') {
+      D.poly(ctx, [[-s * 0.4, -s * 0.05], [s * 0.4, -s * 0.05], [s * 0.4, s * 0.42], [-s * 0.4, s * 0.42]], '#ffe6a8', COL.sumi, 2.5);
+      if (a.yane === 0) { D.poly(ctx, [[-s * 0.46, -s * 0.05], [0, -s * 0.42], [s * 0.46, -s * 0.05]], COL.aka, COL.sumi, 2.5); }
+      else { D.poly(ctx, [[-s * 0.46, -s * 0.05], [-s * 0.2, -s * 0.38], [s * 0.2, -s * 0.38], [s * 0.46, -s * 0.05]], COL.aka, COL.sumi, 2.5); }
+      if (a.entotsu === 1) { ctx.fillStyle = COL.cha; ctx.fillRect(s * 0.18, -s * 0.36, s * 0.1, s * 0.16); ctx.strokeStyle = COL.sumi; ctx.lineWidth = 2; ctx.strokeRect(s * 0.18, -s * 0.36, s * 0.1, s * 0.16); }
+      x = a.tobira === 0 ? -s * 0.3 : s * 0.12;
+      ctx.fillStyle = COL.cha; ctx.fillRect(x, s * 0.14, s * 0.18, s * 0.28); ctx.strokeStyle = COL.sumi; ctx.lineWidth = 2; ctx.strokeRect(x, s * 0.14, s * 0.18, s * 0.28);
+      for (i = 0; i <= a.mado; i++) { x = (a.tobira === 0 ? s * 0.02 : -s * 0.36) + i * s * 0.13; ctx.fillStyle = COL.mizu; ctx.fillRect(x, s * 0.04, s * 0.09, s * 0.09); ctx.strokeRect(x, s * 0.04, s * 0.09, s * 0.09); }
+    } else if (kind === 'roketto') {
+      D.poly(ctx, [[-s * 0.16, -s * 0.1], [0, -s * 0.46], [s * 0.16, -s * 0.1]], COL.aka, COL.sumi, 2.5);
+      ctx.fillStyle = '#e8eef4'; ctx.fillRect(-s * 0.16, -s * 0.1, s * 0.32, s * 0.4); ctx.strokeStyle = COL.sumi; ctx.lineWidth = 2.5; ctx.strokeRect(-s * 0.16, -s * 0.1, s * 0.32, s * 0.4);
+      for (i = 0; i < a.shima; i++) { D.line(ctx, -s * 0.16, s * 0.2 + i * s * 0.06, s * 0.16, s * 0.2 + i * s * 0.06, COL.ao, 3); }
+      for (i = 0; i <= a.mado; i++) { D.circle(ctx, 0, -s * 0.02 + i * s * 0.1 - a.mado * s * 0.02, s * 0.035, COL.mizu, COL.sumi, 1.5); }
+      if (a.hane === 0) { D.circle(ctx, -s * 0.22, s * 0.26, s * 0.07, COL.daidai, COL.sumi, 2); D.circle(ctx, s * 0.22, s * 0.26, s * 0.07, COL.daidai, COL.sumi, 2); }
+      else { D.poly(ctx, [[-s * 0.16, s * 0.12], [-s * 0.3, s * 0.32], [-s * 0.16, s * 0.3]], COL.daidai, COL.sumi, 2); D.poly(ctx, [[s * 0.16, s * 0.12], [s * 0.3, s * 0.32], [s * 0.16, s * 0.3]], COL.daidai, COL.sumi, 2); }
+      for (i = 0; i <= a.honoo; i++) { D.poly(ctx, [[-s * 0.06 + (i - a.honoo / 2) * s * 0.14, s * 0.3], [(i - a.honoo / 2) * s * 0.14, s * 0.46], [s * 0.06 + (i - a.honoo / 2) * s * 0.14, s * 0.3]], COL.ki, COL.daidai, 2); }
+    } else {
+      ctx.fillStyle = '#c9d6e2'; ctx.fillRect(-s * 0.22, -s * 0.36, s * 0.44, s * 0.3); ctx.strokeStyle = COL.sumi; ctx.lineWidth = 2.5; ctx.strokeRect(-s * 0.22, -s * 0.36, s * 0.44, s * 0.3);
+      ctx.fillRect(-s * 0.28, -s * 0.02, s * 0.56, s * 0.42); ctx.strokeRect(-s * 0.28, -s * 0.02, s * 0.56, s * 0.42);
+      if (a.antena === 1) { D.line(ctx, 0, -s * 0.36, 0, -s * 0.46, COL.sumi, 3); D.circle(ctx, 0, -s * 0.47, s * 0.03, COL.aka, COL.sumi, 1.5); }
+      if (a.me === 0) { D.circle(ctx, 0, -s * 0.21, s * 0.06, COL.ki, COL.sumi, 2); } else { D.circle(ctx, -s * 0.1, -s * 0.21, s * 0.05, COL.ki, COL.sumi, 2); D.circle(ctx, s * 0.1, -s * 0.21, s * 0.05, COL.ki, COL.sumi, 2); }
+      for (i = 0; i <= a.botan; i++) { D.circle(ctx, (i - a.botan / 2) * s * 0.12, s * 0.18, s * 0.035, COL.aka, COL.sumi, 1.5); }
+      y = a.ude === 0 ? s * 0.08 : -s * 0.18;
+      D.line(ctx, -s * 0.28, s * 0.06, -s * 0.42, y, COL.sumi, 5); D.line(ctx, s * 0.28, s * 0.06, s * 0.42, y, COL.sumi, 5);
+    }
+    if (markKey) {
+      /* 足場＝ちがう ところに 輪 */
+      if (kind === 'ie') { x = markKey === 'yane' ? 0 : (markKey === 'entotsu' ? s * 0.23 : (markKey === 'tobira' ? (a.tobira === 0 ? -s * 0.21 : s * 0.21) : (a.tobira === 0 ? s * 0.15 : -s * 0.2))); y = markKey === 'yane' ? -s * 0.24 : (markKey === 'entotsu' ? -s * 0.28 : (markKey === 'tobira' ? s * 0.28 : s * 0.08)); }
+      else if (kind === 'roketto') { x = markKey === 'hane' ? -s * 0.24 : 0; y = markKey === 'mado' ? 0 : (markKey === 'shima' ? s * 0.24 : (markKey === 'hane' ? s * 0.26 : s * 0.4)); }
+      else { x = markKey === 'ude' ? -s * 0.38 : 0; y = markKey === 'antena' ? -s * 0.42 : (markKey === 'me' ? -s * 0.21 : (markKey === 'botan' ? s * 0.18 : -s * 0.05)); }
+      D.circle(ctx, x, y, s * 0.16, null, COL.daidai, 4);
+    }
+    ctx.restore();
+  }
+  function paintFig(canvas, q, a, markKey) { var c = WH.setupCanvas(canvas), s = Math.min(c.w, c.h); WH.paper(c.ctx, c.w, c.h); c.ctx.translate(c.w / 2, c.h / 2); drawFig(c.ctx, q.fig, a, s, markKey); }
+
+  /* ================= 9 かたち（ますの 集まり） ================= */
+  function cellKey(r, c) { return r + ',' + c; }
+  function normCells(cells) {
+    var mr = 99, mc = 99, i, out = [];
+    for (i = 0; i < cells.length; i++) { if (cells[i][0] < mr) { mr = cells[i][0]; } if (cells[i][1] < mc) { mc = cells[i][1]; } }
+    for (i = 0; i < cells.length; i++) { out.push([cells[i][0] - mr, cells[i][1] - mc]); }
+    out.sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; });
+    return out;
+  }
+  function cellSig(cells) { var n = normCells(cells), s = [], i; for (i = 0; i < n.length; i++) { s.push(n[i][0] + ',' + n[i][1]); } return s.join('|'); }
+  function rotCells(cells) { var i, out = []; for (i = 0; i < cells.length; i++) { out.push([cells[i][1], -cells[i][0]]); } return normCells(out); }
+  function flipCells(cells) { var i, out = []; for (i = 0; i < cells.length; i++) { out.push([cells[i][0], -cells[i][1]]); } return normCells(out); }
+  function congruent(a, b) {
+    var k, x = normCells(a), sb = cellSig(b), f;
+    if (a.length !== b.length) { return false; }
+    for (k = 0; k < 4; k++) { if (cellSig(x) === sb) { return true; } f = flipCells(x); if (cellSig(f) === sb) { return true; } x = rotCells(x); }
+    return false;
+  }
+  function connected(cells) {
+    var set = {}, i, seen = {}, stack, cur, n = 0, d, nb, DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    if (!cells.length) { return false; }
+    for (i = 0; i < cells.length; i++) { set[cellKey(cells[i][0], cells[i][1])] = true; }
+    stack = [cells[0]]; seen[cellKey(cells[0][0], cells[0][1])] = true;
+    while (stack.length) { cur = stack.pop(); n++; for (d = 0; d < 4; d++) { nb = cellKey(cur[0] + DIRS[d][0], cur[1] + DIRS[d][1]); if (set[nb] && !seen[nb]) { seen[nb] = true; stack.push([cur[0] + DIRS[d][0], cur[1] + DIRS[d][1]]); } } }
+    return n === cells.length;
+  }
+  /* 形を つながった k 個に 分ける（たね から 育てる・つながりを 確かめる） */
+  function splitCells(cells, k) {
+    var tries, i, j, owner, seeds, grown, cand, parts, ok, DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]], idxOf = {}, d, nb, p;
+    for (i = 0; i < cells.length; i++) { idxOf[cellKey(cells[i][0], cells[i][1])] = i; }
+    for (tries = 0; tries < 200; tries++) {
+      owner = []; for (i = 0; i < cells.length; i++) { owner.push(-1); }
+      seeds = shuffle(cells.map(function (c, idx) { return idx; })).slice(0, k);
+      for (i = 0; i < k; i++) { owner[seeds[i]] = i; }
+      grown = k;
+      while (grown < cells.length) {
+        cand = [];
+        for (i = 0; i < cells.length; i++) { if (owner[i] < 0) { continue; } for (d = 0; d < 4; d++) { nb = idxOf[cellKey(cells[i][0] + DIRS[d][0], cells[i][1] + DIRS[d][1])]; if (nb !== undefined && owner[nb] < 0) { cand.push([nb, owner[i]]); } } }
+        if (!cand.length) { break; }
+        p = pick(cand); owner[p[0]] = p[1]; grown++;
+      }
+      if (grown < cells.length) { continue; }
+      parts = []; for (i = 0; i < k; i++) { parts.push([]); }
+      for (i = 0; i < cells.length; i++) { parts[owner[i]].push(cells[i]); }
+      ok = true; for (j = 0; j < k; j++) { if (parts[j].length < 1 || !connected(parts[j])) { ok = false; } }
+      if (ok) { return parts; }
+    }
+    return null;
+  }
+  function rectCells(rows, cols) { var r, c, out = []; for (r = 0; r < rows; r++) { for (c = 0; c < cols; c++) { out.push([r, c]); } } return out; }
+  function unionCells(a, b) { var out = a.slice(), i, seen = {}; for (i = 0; i < a.length; i++) { seen[cellKey(a[i][0], a[i][1])] = true; } for (i = 0; i < b.length; i++) { if (!seen[cellKey(b[i][0], b[i][1])]) { out.push(b[i]); } } return out; }
+  function placedUnionIsTarget(a, b, target) {
+    /* a は 元の位置、b を 上下左右に ずらして a と 重ならず 合わせて target に なるか（回さない） */
+    var dr, dc, i, moved, u, tk = {}, ok, key;
+    if (a.length + b.length !== target.length) { return false; }
+    for (i = 0; i < target.length; i++) { tk[cellKey(target[i][0], target[i][1])] = true; }
+    for (dr = -4; dr <= 4; dr++) {
+      for (dc = -4; dc <= 4; dc++) {
+        moved = []; ok = true;
+        for (i = 0; i < b.length; i++) { key = cellKey(b[i][0] + dr, b[i][1] + dc); if (!tk[key]) { ok = false; break; } moved.push([b[i][0] + dr, b[i][1] + dc]); }
+        if (!ok) { continue; }
+        u = unionCells(a, moved);
+        if (u.length === target.length) { return true; }
+      }
+    }
+    return false;
+  }
+  function randomPoly(n) {
+    var cells = [[0, 0]], tries, c, d, DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]], nb, seen = { '0,0': true };
+    for (tries = 0; tries < 200 && cells.length < n; tries++) { c = pick(cells); d = pick(DIRS); nb = [c[0] + d[0], c[1] + d[1]]; if (seen[cellKey(nb[0], nb[1])]) { continue; } seen[cellKey(nb[0], nb[1])] = true; cells.push(nb); }
+    return normCells(cells);
+  }
+  var WAKE_PAT = [
+    { key: 'r4', name: 'おなじ おおきさの ながしかく 4つ', lines: [[0, 0.25, 1, 0.25], [0, 0.5, 1, 0.5], [0, 0.75, 1, 0.75]] },
+    { key: 's4', name: 'おなじ おおきさの ましかく 4つ', lines: [[0, 0.5, 1, 0.5], [0.5, 0, 0.5, 1]] },
+    { key: 's2r2', name: 'ましかく 2つと ながしかく 2つ', lines: [[0.5, 0, 0.5, 1], [0, 0.5, 0.5, 0.5], [0.75, 0, 0.75, 1]] },
+    { key: 't2', name: 'おなじ おおきさの さんかく 2つ', lines: [[0, 0, 1, 1]] },
+    { key: 't4', name: 'おなじ おおきさの さんかく 4つ', lines: [[0, 0, 1, 1], [1, 0, 0, 1]] },
+    { key: 't1s2', name: 'おおきい さんかく 1つと ちいさい さんかく 2つ', lines: [[0, 0, 1, 1], [1, 0, 0.5, 0.5]] },
+    { key: 'r2', name: 'おなじ おおきさの ながしかく 2つ', lines: [[0.5, 0, 0.5, 1]] },
+    { key: 'r3', name: 'おなじ おおきさの ながしかく 3つ', lines: [[0, 0.333, 1, 0.333], [0, 0.667, 1, 0.667]] }
+  ];
+  function makeKatachi(level) {
+    var subs = level === 1 ? ['awase', 'ori'] : ['awase', 'kirenai', 'wake', 'ori'], sub = pick(subs), tries, target, parts, pieces, wrongs, w, i, j, q, pat, cands, others, half, full, mirror, sets, seen, sig, left, k, cells;
+    if (sub === 'awase') {
+      for (tries = 0; tries < 100; tries++) {
+        target = level === 1 ? rectCells(2, 2) : (level === 2 ? rectCells(2, 3) : pick([rectCells(3, 3), rectCells(2, 4), [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [2, 1]]]));
+        parts = splitCells(target, 2); if (!parts) { continue; }
+        if (level >= 2 && (parts[0].length < 2 || parts[1].length < 2)) { continue; }
+        pieces = [parts[0], parts[1]]; wrongs = [];
+        for (i = 0; i < 60 && wrongs.length < 2; i++) {
+          w = randomPoly(pieces[wrongs.length % 2].length + (rnd() < 0.5 ? 0 : (rnd() < 0.5 ? 1 : -1)));
+          if (w.length < 1) { continue; }
+          ok = true;
+          for (j = 0; j < pieces.length; j++) { if (cellSig(w) === cellSig(pieces[j]) || placedUnionIsTarget(pieces[j], w, target)) { ok = false; } }
+          for (j = 0; j < wrongs.length; j++) { if (cellSig(w) === cellSig(wrongs[j]) || placedUnionIsTarget(normCells(wrongs[j]), w, target)) { ok = false; } }
+          if (ok) { wrongs.push(w); }
+        }
+        if (wrongs.length < 2) { continue; }
+        cands = shuffle([{ cells: pieces[0], real: true }, { cells: pieces[1], real: true }, { cells: wrongs[0], real: false }, { cells: wrongs[1], real: false }]);
+        q = { g: 'katachi', sub: sub, level: level, target: target, kind: 'multi', need: 2, cType: 'canvas', choices: [], answerSet: [], v: ri(2) };
+        for (i = 0; i < 4; i++) { q.choices.push(cands[i].cells); if (cands[i].real) { q.answerSet.push(i); } }
+        q.answerSets = [q.answerSet];
+        return q;
+      }
+      return null;
+    }
+    if (sub === 'kirenai') {
+      for (tries = 0; tries < 100; tries++) {
+        target = level === 2 ? rectCells(2, 3) : pick([rectCells(3, 3), rectCells(2, 4)]);
+        parts = splitCells(target, 3); if (!parts) { continue; }
+        w = null;
+        for (i = 0; i < 60 && !w; i++) {
+          cells = randomPoly(parts[ri(3)].length);
+          ok = true; for (j = 0; j < 3; j++) { if (congruent(cells, parts[j])) { ok = false; } }
+          if (ok) { w = cells; }
+        }
+        if (!w) { continue; }
+        cands = shuffle([{ cells: parts[0], fake: false }, { cells: parts[1], fake: false }, { cells: parts[2], fake: false }, { cells: w, fake: true }]);
+        q = { g: 'katachi', sub: sub, level: level, target: target, parts: parts, kind: 'choose', cType: 'canvas', choices: [], v: ri(2) };
+        for (i = 0; i < 4; i++) { q.choices.push(cands[i].cells); if (cands[i].fake) { q.answerIndex = i; } }
+        return q;
+      }
+      return null;
+    }
+    if (sub === 'wake') {
+      pat = pick(level === 2 ? WAKE_PAT.slice(0, 5) : WAKE_PAT);
+      others = shuffle(WAKE_PAT.filter(function (p) { return p.key !== pat.key; })).slice(0, 3);
+      cands = shuffle([pat].concat(others));
+      q = { g: 'katachi', sub: sub, level: level, pat: pat, kind: 'choose', cType: 'canvas', choices: cands, answerIndex: cands.indexOf(pat), v: ri(2) };
+      return q;
+    }
+    /* ori＝2つに おった かみ（ひだりの はんぶん）を きって ひらくと？ ます 4×3・おりめ は まんなか */
+    for (tries = 0; tries < 100; tries++) {
+      left = []; seen = {}; k = level === 1 ? 2 : (level === 2 ? 3 : 4);
+      cells = [[0, 1], [1, 1], [2, 1]];   /* おりめに 接する ます から はじめる */
+      left.push(pick(cells)); seen[cellKey(left[0][0], left[0][1])] = true;
+      for (i = 0; i < 50 && left.length < k; i++) { w = pick(left); j = pick([[1, 0], [-1, 0], [0, -1], [0, 1]]); cells = [w[0] + j[0], w[1] + j[1]]; if (cells[0] < 0 || cells[0] > 2 || cells[1] < 0 || cells[1] > 1 || seen[cellKey(cells[0], cells[1])]) { continue; } seen[cellKey(cells[0], cells[1])] = true; left.push(cells); }
+      if (left.length < k) { continue; }
+      mirror = []; for (i = 0; i < left.length; i++) { mirror.push([left[i][0], 3 - left[i][1]]); }
+      full = unionCells(left, mirror);
+      /* まちがい＝うつさずに ずらした・上下に うつした・1ます ちがう はんぶんを うつした */
+      sets = []; sig = {}; sig[cellSig(full)] = true;
+      half = []; for (i = 0; i < left.length; i++) { half.push([left[i][0], left[i][1] + 2]); } cands = unionCells(left, half); if (!sig[cellSig(cands)] && cands.length === full.length) { sig[cellSig(cands)] = true; sets.push(cands); }
+      half = []; for (i = 0; i < left.length; i++) { half.push([2 - left[i][0], left[i][1] + 2]); } cands = unionCells(left, half); if (!sig[cellSig(cands)] && cands.length === full.length) { sig[cellSig(cands)] = true; sets.push(cands); }
+      for (i = 0; i < 40 && sets.length < 3; i++) {
+        half = left.slice(0, left.length - 1); w = [ri(3), ri(2)]; if (seen[cellKey(w[0], w[1])]) { continue; } half.push(w);
+        mirror = []; for (j = 0; j < half.length; j++) { mirror.push([half[j][0], 3 - half[j][1]]); }
+        cands = unionCells(half, mirror);
+        if (!sig[cellSig(cands)]) { sig[cellSig(cands)] = true; sets.push(cands); }
+      }
+      if (sets.length < 3) { continue; }
+      cands = shuffle([full].concat(sets.slice(0, 3)));
+      q = { g: 'katachi', sub: sub, level: level, left: left, full: full, kind: 'choose', cType: 'canvas', choices: cands, answerIndex: cands.indexOf(full), v: ri(2) };
+      return q;
+    }
+    return null;
+    var ok;
+  }
+  function drawCells(ctx, cells, x0, y0, cs, fill, grid) {
+    var i, r, c;
+    for (i = 0; i < cells.length; i++) { r = cells[i][0]; c = cells[i][1]; ctx.fillStyle = fill; ctx.fillRect(x0 + c * cs, y0 + r * cs, cs, cs); ctx.strokeStyle = COL.sumi; ctx.lineWidth = 2; ctx.strokeRect(x0 + c * cs, y0 + r * cs, cs, cs); }
+    if (grid) { for (i = 0; i < grid.length; i++) { ctx.strokeStyle = COL.hai; ctx.lineWidth = 1; ctx.strokeRect(x0 + grid[i][1] * cs, y0 + grid[i][0] * cs, cs, cs); } }
+  }
+  function extent(cells) { var mr = 0, mc = 0, i, n = normCells(cells); for (i = 0; i < n.length; i++) { if (n[i][0] > mr) { mr = n[i][0]; } if (n[i][1] > mc) { mc = n[i][1]; } } return [mr + 1, mc + 1]; }
+  function paintCellsFit(canvas, cells, fill, maxCell, grid, frame) {
+    var c = WH.setupCanvas(canvas), ex = extent(grid || cells), cs = Math.min(maxCell || 40, (c.w - 16) / ex[1], (c.h - 16) / ex[0]), x0 = (c.w - cs * ex[1]) / 2, y0 = (c.h - cs * ex[0]) / 2;
+    WH.paper(c.ctx, c.w, c.h, frame);
+    if (grid) { drawCells(c.ctx, normCells(cells), x0, y0, cs, fill, normCells(grid)); } else { drawCells(c.ctx, normCells(cells), x0, y0, cs, fill, null); }
+    return c;
+  }
+  function paintKatachiStem(canvas, q, hint) {
+    var c, s, i, l;
+    if (q.sub === 'awase') { paintCellsFit(canvas, q.target, '#9fd0f0', 44); return; }
+    if (q.sub === 'kirenai') {
+      c = paintCellsFit(canvas, q.target, '#9fd0f0', 44);
+      if (hint) {   /* 足場＝ほんとうの きりめ を てんせんで */
+        s = Math.min(44, (c.w - 16) / extent(q.target)[1], (c.h - 16) / extent(q.target)[0]);
+        for (i = 0; i < q.parts.length; i++) { drawCells(c.ctx, normCells(q.parts[i]).map(function (x) { return [x[0] + q.parts[i][0][0] - normCells(q.parts[i])[0][0], x[1]]; }), (c.w - s * extent(q.target)[1]) / 2, (c.h - s * extent(q.target)[0]) / 2, s, ['#9fd0f0', '#f6d32d', '#f6b7c4'][i], null); }
+      }
+      return;
+    }
+    if (q.sub === 'wake') { c = WH.setupCanvas(canvas); WH.paper(c.ctx, c.w, c.h); s = Math.min(c.w, c.h) * 0.7; c.ctx.strokeStyle = COL.sumi; c.ctx.lineWidth = 3; c.ctx.strokeRect((c.w - s) / 2, (c.h - s) / 2, s, s); D.text(c.ctx, q.pat.name, c.w / 2, c.h - 16, 14, COL.daidai); return; }
+    /* ori＝おった かみ（ひだりの はんぶん）＋おりめ */
+    c = WH.setupCanvas(canvas); WH.paper(c.ctx, c.w, c.h);
+    s = Math.min(c.w / 4, c.h / 4); l = (c.w - s * 2) / 2;
+    c.ctx.fillStyle = '#fff2b8'; c.ctx.fillRect(l, (c.h - s * 3) / 2, s * 2, s * 3); c.ctx.strokeStyle = COL.sumi; c.ctx.lineWidth = 2; c.ctx.strokeRect(l, (c.h - s * 3) / 2, s * 2, s * 3);
+    drawCells(c.ctx, q.left, l, (c.h - s * 3) / 2, s, hint ? '#9fd0f0' : COL.hai, null);
+    c.ctx.setLineDash && c.ctx.setLineDash([8, 6]); D.line(c.ctx, l + s * 2, (c.h - s * 3) / 2 - 8, l + s * 2, (c.h + s * 3) / 2 + 8, COL.ao, 4); c.ctx.setLineDash && c.ctx.setLineDash([]);
+    if (hint) { c.ctx.globalAlpha = 0.35; drawCells(c.ctx, q.full.filter(function (x) { return x[1] >= 2; }), l, (c.h - s * 3) / 2, s, '#9fd0f0', null); c.ctx.globalAlpha = 1; }
+  }
+  function paintKatachiChoice(canvas, q, i, hint) {
+    var c, s, k;
+    if (q.sub === 'awase' || q.sub === 'kirenai') { paintCellsFit(canvas, q.choices[i], q.sub === 'awase' ? '#f6d32d' : '#9fd0f0', 34, null, COL.hai); return; }
+    if (q.sub === 'wake') {
+      c = WH.setupCanvas(canvas); WH.paper(c.ctx, c.w, c.h, COL.hai); s = Math.min(c.w, c.h) * 0.72;
+      c.ctx.save(); c.ctx.translate((c.w - s) / 2, (c.h - s) / 2);
+      c.ctx.strokeStyle = COL.sumi; c.ctx.lineWidth = 3; c.ctx.strokeRect(0, 0, s, s);
+      for (k = 0; k < q.choices[i].lines.length; k++) { D.line(c.ctx, q.choices[i].lines[k][0] * s, q.choices[i].lines[k][1] * s, q.choices[i].lines[k][2] * s, q.choices[i].lines[k][3] * s, COL.ao, 3); }
+      c.ctx.restore(); return;
+    }
+    paintCellsFit(canvas, q.choices[i], '#9fd0f0', 30, rectCells(3, 4), COL.hai);
+  }
+
+  /* ================= 10 あなに ぴったり ================= */
+  function anaSig(xs, ys, cx, cy, r) {
+    var i, s = [];
+    for (i = 0; i < xs.length; i++) { if (Math.abs(xs[i] - cx) < r) { s.push('v' + Math.round((xs[i] - cx) / r * 3)); } }
+    for (i = 0; i < ys.length; i++) { if (Math.abs(ys[i] - cy) < r) { s.push('h' + Math.round((ys[i] - cy) / r * 3)); } }
+    s.sort(); return s.join('|');
+  }
+  function makeAna(level) {
+    var tries, xs, ys, r = 0.16, cx, cy, sig, cands, seen, i, q, c, n = level === 1 ? 2 : 3, lines;
+    for (tries = 0; tries < 200; tries++) {
+      xs = shuffle([0.2, 0.36, 0.52, 0.68, 0.84]).slice(0, n).sort(); ys = shuffle([0.22, 0.42, 0.62, 0.8]).slice(0, n).sort();
+      cx = 0.2 + rnd() * 0.6; cy = 0.22 + rnd() * 0.56;
+      sig = anaSig(xs, ys, cx, cy, r);
+      if (sig === '' || sig.split('|').length < 2) { continue; }
+      seen = {}; seen[sig] = true; cands = [];
+      for (i = 0; i < 80 && cands.length < 3; i++) {
+        c = { cx: 0.2 + rnd() * 0.6, cy: 0.22 + rnd() * 0.56, rot: level >= 2 && rnd() < 0.3 ? 1 : 0, mir: level === 3 && rnd() < 0.3 ? 1 : 0 };
+        lines = anaLines(xs, ys, c, r);
+        c.sig = lines.sig;
+        if (seen[c.sig] || c.sig === '' || c.sig.split('|').length < 2) { continue; }
+        seen[c.sig] = true; cands.push(c);
+      }
+      if (cands.length < 3) { continue; }
+      cands = shuffle([{ cx: cx, cy: cy, rot: 0, mir: 0, sig: sig, right: true }].concat(cands));
+      q = { g: 'ana', level: level, xs: xs, ys: ys, cx: cx, cy: cy, r: r, choices: cands, kind: 'choose', cType: 'canvas', v: ri(2) };
+      for (i = 0; i < 4; i++) { if (cands[i].right) { q.answerIndex = i; } }
+      return q;
+    }
+    return null;
+  }
+  /* あなの なかの 線＝まんなか からの ずれ（−1〜1）の 一覧。rot＝90度 まわす・mir＝左右 うらがえす */
+  function anaLines(xs, ys, c, r) {
+    var i, v = [], h = [], t, out = [], s = [];
+    for (i = 0; i < xs.length; i++) { if (Math.abs(xs[i] - c.cx) < r) { v.push((xs[i] - c.cx) / r); } }
+    for (i = 0; i < ys.length; i++) { if (Math.abs(ys[i] - c.cy) < r) { h.push((ys[i] - c.cy) / r); } }
+    if (c.rot) { t = v; v = h.map(function (x) { return -x; }); h = t; }
+    if (c.mir) { v = v.map(function (x) { return -x; }); }
+    for (i = 0; i < v.length; i++) { out.push(['v', v[i]]); s.push('v' + Math.round(v[i] * 3)); }
+    for (i = 0; i < h.length; i++) { out.push(['h', h[i]]); s.push('h' + Math.round(h[i] * 3)); }
+    s.sort();
+    return { lines: out, sig: s.join('|') };
+  }
+  function paintAnaStem(canvas, q, hint) {
+    var c = WH.setupCanvas(canvas), i, lw = Math.max(6, c.w * 0.03), R = q.r * c.w;
+    WH.paper(c.ctx, c.w, c.h);
+    for (i = 0; i < q.xs.length; i++) { D.line(c.ctx, q.xs[i] * c.w, 6, q.xs[i] * c.w, c.h - 6, COL.sumi, lw); }
+    for (i = 0; i < q.ys.length; i++) { D.line(c.ctx, 6, q.ys[i] * c.h, c.w - 6, q.ys[i] * c.h, COL.sumi, lw); }
+    D.circle(c.ctx, q.cx * c.w, q.cy * c.h, R, COL.kami, COL.sumi, 3);
+    if (hint) {   /* 足場＝あなの ふちで せんが きれる ところに 印 */
+      for (i = 0; i < q.xs.length; i++) { if (Math.abs(q.xs[i] - q.cx) < q.r) { D.circle(c.ctx, q.xs[i] * c.w, q.cy * c.h - Math.sqrt(R * R - Math.pow((q.xs[i] - q.cx) * c.w, 2)), 7, COL.daidai); D.circle(c.ctx, q.xs[i] * c.w, q.cy * c.h + Math.sqrt(R * R - Math.pow((q.xs[i] - q.cx) * c.w, 2)), 7, COL.daidai); } }
+      for (i = 0; i < q.ys.length; i++) { if (Math.abs(q.ys[i] - q.cy) < q.r) { D.circle(c.ctx, q.cx * c.w - Math.sqrt(R * R - Math.pow((q.ys[i] - q.cy) * c.h, 2)), q.ys[i] * c.h, 7, COL.daidai); D.circle(c.ctx, q.cx * c.w + Math.sqrt(R * R - Math.pow((q.ys[i] - q.cy) * c.h, 2)), q.ys[i] * c.h, 7, COL.daidai); } }
+    }
+  }
+  function paintAnaChoice(canvas, q, i) {
+    var c = WH.setupCanvas(canvas), ch = q.choices[i], R = Math.min(c.w, c.h) * 0.42, k, ln = anaLines(q.xs, q.ys, ch, q.r).lines, lw = Math.max(5, R * 0.18);
+    WH.paper(c.ctx, c.w, c.h, COL.hai);
+    c.ctx.save(); c.ctx.beginPath(); c.ctx.arc(c.w / 2, c.h / 2, R, 0, Math.PI * 2); c.ctx.clip();
+    for (k = 0; k < ln.length; k++) {
+      if (ln[k][0] === 'v') { D.line(c.ctx, c.w / 2 + ln[k][1] * R, c.h / 2 - R - 4, c.w / 2 + ln[k][1] * R, c.h / 2 + R + 4, COL.sumi, lw); }
+      else { D.line(c.ctx, c.w / 2 - R - 4, c.h / 2 + ln[k][1] * R, c.w / 2 + R + 4, c.h / 2 + ln[k][1] * R, COL.sumi, lw); }
+    }
+    c.ctx.restore();
+    D.circle(c.ctx, c.w / 2, c.h / 2, R, null, COL.sumi, 3);
+  }
+
+  /* ================= 11 おはなし（こたえの ない もんだい＝せんせいと の ときだけ） ================= */
+  var SHITSUMON = [
+    { lv: 1, q: 'おなまえを おしえて ください', model: '「わたしの なまえは ○○ です」と、さいごまで いう' },
+    { lv: 1, q: 'なんさい ですか', model: '「○さい です」と いう' },
+    { lv: 1, q: 'きょうの あさごはんは なにを たべましたか', model: '「○○と ○○を たべました」' },
+    { lv: 1, q: 'いちばん すきな あそびは なんですか。どうして すきですか', model: '「○○ です。どうして かと いうと、△△ だから です」' },
+    { lv: 2, q: 'どうぶつえんに もって いく ものを 3つ いって ください', model: 'たとえば「おべんとう・すいとう・ぼうし です」' },
+    { lv: 2, q: 'おともだちが ころんで ないて いたら、どう しますか', model: '「だいじょうぶ？ と こえを かけて、せんせいを よびます」' },
+    { lv: 2, q: 'いま、ここまで どうやって きましたか', model: '「○○に のって、それから あるいて きました」' },
+    { lv: 3, q: 'おままごとで、おなじ やくを やりたい こが ふたり いたら、どう しますか', model: '「じゅんばんに やろう、と いいます」「じゃんけんで きめます」' },
+    { lv: 3, q: 'おともだちが どろんこに なって しまったら、どう しますか', model: '「いっしょに てを あらいに いきます」「せんせいに いいます」' },
+    { lv: 3, q: 'たからものは なんですか。どうして たからもの なのですか', model: '「○○ です。△△ だから、たいせつ です」' }
+  ];
+  function makeHanashi(level) {
+    var subs = level === 1 ? ['shitsumon', 'docchi'] : (level === 2 ? ['shitsumon', 'docchi', 'tsukuru'] : ['shitsumon', 'tsukuru', 'tsukuru']), sub = pick(subs), q, pool, a, b, c, its;
+    if (sub === 'shitsumon') {
+      pool = SHITSUMON.filter(function (s) { return s.lv <= level; });
+      a = pick(pool);
+      return { g: 'hanashi', sub: sub, level: level, kind: 'open', cType: 'none', ask: a.q, model: a.model, v: ri(2) };
+    }
+    if (sub === 'docchi') {
+      its = shuffle(itemsWhere(function (it) { return !!it.food || !!it.animal || !!it.ride; })).slice(0, 2);
+      return { g: 'hanashi', sub: sub, level: level, kind: 'open', cType: 'none', pics: [its[0].id, its[1].id], model: '「わたしは ' + its[0].name + ' が すき です。どうして かと いうと、△△ だから です」', v: ri(2) };
+    }
+    its = shuffle(WH.ITEMS); a = pick(itemsWhere(function (it) { return !!it.animal; })); b = pick(itemsWhere(function (it) { return !!it.food; })); c = pick(itemsWhere(function (it) { return !!it.ride || !!it.carry; }));
+    q = { g: 'hanashi', sub: sub, level: level, kind: 'open', cType: 'none', pics: level === 2 ? [a.id, b.id] : [a.id, b.id, c.id], v: ri(2) };
+    q.model = 'たとえば「ある ひ、' + a.name + ' が ' + b.name + ' を みつけました。' + (level === 3 ? c.name + ' に のせて（' + c.name + ' を もって）、' : '') + 'おうちに かえって、みんなで たべました。おしまい」';
+    return q;
+  }
+
+  /* ================= 制限時間（秒）＝練習帳の〈時間〉を 1問あたりに ならした値。いちばん上の レベルが 本番の 水準（K11）
+     ひも 40秒/2問→20・くらべる まめ20秒/問・ジュース1分/2問→20・シーソー 1分/2問→30・かぞえる 1分/2種→30（差は1分/6→10 なので 20に）
+     わける 1分30秒/2問→45・かずの おはなし 2分/3問→40・なかま 1分/3部屋→20・おなじ え 40秒/3→15・かたち 1分〜2分/3〜6→20・あな 1分/5→15。おはなし は 時間なし */
+  var TIME_SEC = {
+    himo: { 1: 45, 2: 30, 3: 20 }, kurabe: { 1: 45, 2: 30, 3: 20 }, shiso: { 1: 45, 2: 35, 3: 30 }, kazoe: { 1: 45, 2: 30, 3: 20 },
+    wakeru: { 1: 60, 2: 50, 3: 45 }, kazuhanashi: { 1: 60, 2: 50, 3: 40 }, nakama: { 1: 45, 2: 30, 3: 20 }, onajie: { 1: 40, 2: 25, 3: 15 },
+    katachi: { 1: 45, 2: 30, 3: 20 }, ana: { 1: 40, 2: 25, 3: 15 }, hanashi: { 1: 0, 2: 0, 3: 0 }
+  };
+  WH.TIME_SEC = TIME_SEC;
+  WH.timeFor = function (q) { var t = TIME_SEC[q.g]; if (q.kind === 'open') { return 0; } return (t && t[q.level]) ? t[q.level] : 30; };
+
+  var GENRES = [
+    { id: 'himo', name: 'ひも', sub: 'ほどくと どれが ながい？', make: makeHimo },
+    { id: 'kurabe', name: 'くらべる', sub: 'のんだ りょう・やまの たかさ', make: makeKurabe },
+    { id: 'shiso', name: 'シーソー', sub: '2ばんめに おもいのは？', make: makeShiso },
+    { id: 'kazoe', name: 'かぞえる', sub: 'いくつ・ちがい・おなじ かず', make: makeKazoe },
+    { id: 'wakeru', name: 'わける', sub: 'ずつ・おなじ かずずつ・あまり', make: makeWakeru },
+    { id: 'kazuhanashi', name: 'かずの おはなし', sub: 'ふえて へって、いま いくつ？', make: makeKazuhanashi },
+    { id: 'nakama', name: 'なかま', sub: 'はずれは どれ？ どうして？', make: makeNakama },
+    { id: 'onajie', name: 'おなじ え', sub: 'ぜんぶ おなじ えは どれ？', make: makeOnajie },
+    { id: 'katachi', name: 'かたち', sub: 'あわせる・きる・おる', make: makeKatachi },
+    { id: 'ana', name: 'あなに ぴったり', sub: 'あなに あう のは どれ？', make: makeAna },
+    { id: 'hanashi', name: 'おはなし', sub: 'えで おはなし・しつもんに こたえる', make: makeHanashi, open: true }
+  ];
+  WH.GENRES = GENRES;
+  var GENRE_BY_ID = {};
+  (function () { var i; for (i = 0; i < GENRES.length; i++) { GENRE_BY_ID[GENRES[i].id] = GENRES[i]; WH.GENRE_IDS.push(GENRES[i].id); } })();
+  WH.genreById = function (id) { return GENRE_BY_ID[id]; };
+
+  function makeQuestion(gid, level) {
+    var q = null, tries, g = GENRE_BY_ID[gid];
+    for (tries = 0; tries < 8 && !q; tries++) { q = g.make(level); }
+    if (!q) { q = makeKazoe(1); }
+    if (q.numeric) { q.answerIndex = q.choices.indexOf(q.answer); }
+    return q;
+  }
+  WH.makeQuestion = makeQuestion;
+  /* ひとりで（子が ひとりで タップ）の ときは、こたえの ない もんだい を 出さない */
+  WH.makeFor = function (gid, level, mode) {
+    var q, tries;
+    for (tries = 0; tries < 20; tries++) { q = makeQuestion(gid, level); if (mode === 'sensei' || q.kind !== 'open') { return q; } }
+    return makeQuestion('kazoe', level);
+  };
+
+  /* ================= もんだい文（2とおりの いいまわし＝K31・よみあげ にも つかう） ================= */
+  function ordinalAsk(ask) {
+    if (ask === 'long') { return 'いちばん ながく'; } if (ask === 'short') { return 'いちばん みじかく'; } if (ask === 'second') { return '2ばんめに ながく'; } return '2ばんめに みじかく';
+  }
+  function questionText(q) {
+    var v = q.v || 0, t;
+    if (q.g === 'himo') { return v ? 'むすんで ある ところを ほどいて まっすぐに のばすと、どの ひもが ' + ordinalAsk(q.ask) + ' なりますか' : 'むすびめを ぜんぶ ほどくと、' + ordinalAsk(q.ask) + ' なる ひもは どれ？'; }
+    if (q.g === 'kurabe') {
+      if (q.sub === 'cup') { t = q.ask === 'most' ? 'いちばん たくさん' : (q.ask === 'least' ? 'いちばん すこし' : '2ばんめに たくさん'); return v ? 'みんなに おなじ おおきさの コップで おなじだけ ジュースを くばりました。のんだ あとの コップです。' + t + ' のんだ ひとの コップは どれ？' : 'おなじだけ ジュースを もらって、のんだ あとの コップです。' + t + ' のんだのは どの コップ？'; }
+      if (q.sub === 'pile') { t = q.ask === 'most' ? 'いちばん たくさん' : (q.ask === 'least' ? 'いちばん すこし' : '2ばんめに たくさん'); return v ? 'おさらに まめが のって います。' + t + ' のって いる おさらは どれ？' : t + ' まめが ある おさらを えらんでね'; }
+      return v ? 'りんごを おおきい じゅんに、ゆびで さして（タップして）ね' : 'いちばん おおきい りんごから じゅんばんに タップしてね';
+    }
+    if (q.g === 'shiso') { t = q.ask === 'heavy' ? 'いちばん おもい' : (q.ask === 'light' ? 'いちばん かるい' : (q.ask === 'second' ? '2ばんめに おもい' : '2ばんめに かるい')); return v ? 'シーソーを みて、' + t + ' かたちを えらんでね' : 'シーソーを みて ください。' + t + ' ものは どれですか'; }
+    if (q.g === 'kazoe') {
+      if (q.sub === 'count') { return v ? WH.SHAPE_NAMES[q.target] + ' は いくつ ありますか' : WH.SHAPE_NAMES[q.target] + ' を かぞえてね。いくつ？'; }
+      if (q.sub === 'diff') { return v ? 'ひだりと みぎでは、どちらが いくつ おおい ですか。おおい かずを こたえてね' : 'おおい ほうは、いくつ おおい？'; }
+      return v ? 'ひだりの おへやと おなじ かずの おへやを えらんでね' : 'ひだりと おなじ かずの はこは どれ？';
+    }
+    if (q.g === 'wakeru') {
+      t = itemById(q.item).name;
+      if (q.sub === 'zutsu') { return v ? q.people + 'にんの こどもに、' + t + 'を ひとり ' + q.each + 'こずつ あげるには、' + t + 'は いくつ あれば いいですか' : t + 'を ひとりに ' + q.each + 'こずつ、' + q.people + 'にんに あげます。ぜんぶで いくつ？'; }
+      if (q.sub === 'hitoshiku') { return v ? t + 'が ' + q.total + 'こ あります。' + q.people + 'にんで おなじ かずずつ わけると、ひとり いくつに なりますか' : q.total + 'この ' + t + 'を ' + q.people + 'にんで おなじ かずずつ わけてね。ひとり いくつ？'; }
+      return v ? t + 'が ' + q.total + 'こ あります。' + q.people + 'にんに 1こずつ くばると、いくつ あまりますか' : q.people + 'にんに 1こずつ くばります。あまる ' + t + 'は いくつ？';
+    }
+    if (q.g === 'kazuhanashi') { return q.storyText; }
+    if (q.g === 'nakama') {
+      if (q.sub === 'hazure') { return v ? 'この なかで ひとつだけ なかまはずれが あります。どれですか。どうして そう おもいましたか' : 'なかまはずれは どれ？ そのあと、わけも はなしてね'; }
+      if (q.sub === 'niteiru') { return (v ? 'ふたつの えの、にている ところと ちがう ところを、できるだけ たくさん いって ください' : 'この ふたつ、にている ところは？ ちがう ところは？ たくさん みつけてね'); }
+      return v ? 'ここに ある ものを 2つの なかまに わけます。ひとつの なかまを 3つ タップしてね。そのあと、なんの なかまか はなしてね' : '2つの なかまに わけてね。おなじ なかまの 3つを タップ。なんの なかまかな？';
+    }
+    if (q.g === 'onajie') { return v ? 'ひだりの えと、ぜんぶ おなじ えを みぎから さがしてね' : 'ひだりと そっくり おなじ えは どれ？ よく みくらべてね'; }
+    if (q.g === 'katachi') {
+      if (q.sub === 'awase') { return v ? 'ひだりの かたちを つくるには、みぎの どれと どれを あわせれば いいですか。2つ えらんでね' : 'どれと どれを あわせると ひだりの かたちに なる？ 2つ タップ'; }
+      if (q.sub === 'kirenai') { return v ? 'ひだりの かたちを 3つに きりました。この なかに 1つだけ、きっても できない かたちが あります。どれですか' : 'ひだりを 3つに きった かけら です。1つだけ ちがう かけらは どれ？'; }
+      if (q.sub === 'wake') { return v ? 'ましかくを「' + q.pat.name + '」に わける せんは どれですか' : '「' + q.pat.name + '」に わけて いるのは どれ？'; }
+      return v ? 'かみを 2つに おって、いろの ところを きって ひらくと、どんな かたちに なりますか' : 'おった かみを きって ひらいたら、どの かたち？';
+    }
+    if (q.g === 'ana') { return v ? 'あいて いる まるの なかに ぴったり はいる ものは どれですか' : 'あなに ぴったり あう ものを えらんでね'; }
+    if (q.g === 'hanashi') {
+      if (q.sub === 'shitsumon') { return q.ask; }
+      if (q.sub === 'docchi') { return v ? 'どちらが すき ですか。どうして ですか' : 'どっちが すき？ どうして？'; }
+      return v ? 'この えを つかって、おはなしを つくって ください' : 'この えで おはなしを つくってね。「ある ひ」から はじめよう';
+    }
+    return '';
+  }
+  WH.questionText = questionText;
+
+  /* ================= 足場（1回目の まちがい＝やり方の ヒント・答えは 見せない） ================= */
+  function hintText(q) {
+    if (q.g === 'himo') { return 'むすびめが おおい ほど、ほどくと ながく なるよ。むすびめの かずを かぞえてね'; }
+    if (q.g === 'kurabe') { if (q.sub === 'cup') { return 'のこりが すくない ほど、たくさん のんだよ。だいだいの たかさを くらべてね'; } if (q.sub === 'pile') { return 'やまの たかさを ならべて くらべてね'; } return 'いちばん おおきいのを さがして、つぎに おおきいのを さがしてね'; }
+    if (q.g === 'shiso') { return 'さがっている ほう（まるで かこんだ ほう）が おもいよ。ぜんぶの シーソーを つなげて かんがえてね'; }
+    if (q.g === 'kazoe') { if (q.sub === 'count') { return 'うえの だんから じゅんばんに、' + WH.SHAPE_NAMES[q.target] + ' だけを ゆびで さして かぞえてね'; } if (q.sub === 'diff') { return 'ひだりと みぎを 1こずつ ペアに して、あまった ぶんが ちがいだよ'; } return 'ひだりを かぞえて、おなじ かずの はこを さがしてね'; }
+    if (q.g === 'wakeru') { if (q.sub === 'zutsu') { return 'ひとりに ' + q.each + 'こずつ。ゆびで くばりながら かぞえてね'; } if (q.sub === 'hitoshiku') { return 'ひとりに 1こずつ、じゅんばんに くばってね。なくなるまで'; } return 'ひとりに 1こずつ くばって、のこった ぶんが あまりだよ'; }
+    if (q.g === 'kazuhanashi') { return 'はじめの かずから、ふえたら たして、へったら ひいてね。えを みながら 1つずつ'; }
+    if (q.g === 'nakama') { return 'えを 1つずつ「なんの なかま？」と きいてみてね。3つは おなじ なかまだよ'; }
+    if (q.g === 'onajie') { return 'まるで かこんだ ところが ちがうよ。やね・まど・とびら を 1つずつ くらべてね'; }
+    if (q.g === 'katachi') { if (q.sub === 'awase') { return 'ますの かずを かぞえてね。2つで ぴったり うまる くみあわせを さがそう'; } if (q.sub === 'kirenai') { return 'きりめを てんせんで みせたよ。かけらと 1つずつ くらべてね'; } if (q.sub === 'wake') { return 'せんで できた へやの かずと かたちを かぞえてね'; } return 'おりめで ひらくと、おなじ かたちが はんたいがわにも できるよ'; }
+    if (q.g === 'ana') { return 'あなの ふちで せんが きれる ところに しるしを つけたよ。せんの むきと ばしょを あわせてね'; }
+    return 'もういちど よく みてね';
+  }
+  WH.hintText = hintText;
+  /* 答えの わけ（解説＝おとなが 読んで あげる・子が まねして いえる 長さ） */
+  function whyText(q) {
+    var a, i, s;
+    if (q.g === 'himo') { a = q.knots[q.answerIndex]; return 'むすびめが ' + a + 'こ で ' + (q.ask === 'long' ? 'いちばん おおい' : (q.ask === 'short' ? 'いちばん すくない' : (q.ask === 'second' ? '2ばんめに おおい' : '2ばんめに すくない'))) + ' から。ほどくと むすびめの ぶん ながく なるよ'; }
+    if (q.g === 'kurabe') { if (q.sub === 'cup') { return 'のこりが ' + (q.ask === 'most' ? 'いちばん すくない' : (q.ask === 'least' ? 'いちばん おおい' : '2ばんめに すくない')) + ' コップ だから。のこりが すくない ほど たくさん のんだ'; } if (q.sub === 'pile') { return 'やまが ' + (q.ask === 'most' ? 'いちばん たかい' : (q.ask === 'least' ? 'いちばん ひくい' : '2ばんめに たかい')) + ' から'; } return 'おおきい じゅんに ならべると こう なるよ'; }
+    if (q.g === 'shiso') { s = []; for (i = 0; i < q.order.length; i++) { s.push(WH.SHAPE_NAMES[q.order[i]]); } return 'おもい じゅんに ' + s.join('・') + ' だから'; }
+    if (q.g === 'kazoe') { if (q.sub === 'count') { return WH.SHAPE_NAMES[q.target] + ' は ' + q.answer + 'こ あった'; } if (q.sub === 'diff') { return 'ひだりが ' + q.left + 'こ、みぎが ' + q.right + 'こ。ちがいは ' + q.answer + 'こ'; } return 'ひだりは ' + q.left + 'こ。おなじ ' + q.left + 'この はこが こたえ'; }
+    if (q.g === 'wakeru') { if (q.sub === 'zutsu') { s = []; for (i = 0; i < q.people; i++) { s.push(q.each + 'こ'); } return s.join('、') + ' で ' + q.answer + 'こ'; } if (q.sub === 'hitoshiku') { return q.total + 'こを ' + q.people + 'にんに 1こずつ くばると、ひとり ' + q.answer + 'こ'; } return q.total + 'こ から ' + q.people + 'にんに 1こずつ あげると、' + q.answer + 'こ あまる'; }
+    if (q.g === 'kazuhanashi') { s = 'はじめ ' + q.start; a = q.start; for (i = 0; i < q.steps.length; i++) { a += q.steps[i]; s += (q.steps[i] > 0 ? '、' + q.steps[i] + ' ふえて ' : '、' + (-q.steps[i]) + ' へって ') + a; } return s + '。だから ' + q.answer + 'こ'; }
+    if (q.g === 'nakama') { if (q.sub === 'hazure') { return 'ほかの 3つは みんな ' + q.groupName + '。' + itemById(q.choices[q.answerIndex]).name + ' だけ ちがう なかま'; } if (q.sub === 'niteiru') { return 'にている ところ＝' + (q.same.length ? q.same.join('・') : 'どちらも え') + '。ちがう ところ＝' + (q.diff.length ? q.diff.slice(0, 3).join('・') : 'いろ・かたち・つかいかた'); } return '3つは ' + q.groupA + '、のこりの 3つは ' + q.groupB; }
+    if (q.g === 'onajie') { return 'やね・まど・とびら など、ぜんぶ おなじ なのは これだけ。ほかは どこか 1つ ちがう'; }
+    if (q.g === 'katachi') { if (q.sub === 'awase') { return 'この 2つを あわせると、ますが ぴったり うまって ひだりの かたちに なる'; } if (q.sub === 'kirenai') { return 'ひだりを きった 3つの かけらは てんせんの とおり。これだけ どこにも ない かたち'; } if (q.sub === 'wake') { return 'この せんで わけると「' + q.pat.name + '」に なる'; } return 'おりめで ひらくと、きった かたちが ひだりと みぎに おなじように できる'; }
+    if (q.g === 'ana') { return 'あなの ふちで きれて いる せんの むきと かずが、これだけ ぴったり あう'; }
+    if (q.g === 'hanashi') { return q.model; }
+    return '';
+  }
+  WH.whyText = whyText;
+  /* わけを はなす ときの いいかたの かた（てつだって＝これを みせて まねして もらう） */
+  function frameText(q) {
+    if (q.g === 'himo') { return '「むすびめが ○こで、いちばん おおい から です」'; }
+    if (q.g === 'kurabe') { return q.sub === 'cup' ? '「のこりが いちばん すくない から、たくさん のんだ と おもいます」' : '「やまが いちばん たかい から です」'; }
+    if (q.g === 'shiso') { return '「さがって いる ほうが おもい から、これが いちばん おもい です」'; }
+    if (q.g === 'kazoe') { return '「じゅんばんに かぞえたら、○こ でした」'; }
+    if (q.g === 'wakeru') { return '「ひとりに ○こずつ くばったら、ぜんぶで ○こ に なりました」'; }
+    if (q.g === 'kazuhanashi') { return '「はじめ ○こ で、○こ ふえて、○こ へった から、○こ です」'; }
+    if (q.g === 'nakama') { return q.sub === 'hazure' ? '「ほかのは みんな ○○ だけど、これだけ △△ だから です」' : '「こっちの 3つは ○○の なかま、こっちは △△の なかま です」'; }
+    if (q.g === 'onajie') { return '「やね も まど も とびら も、ぜんぶ おなじ だから です」'; }
+    if (q.g === 'katachi') { return '「ここと ここを あわせると、ぴったり おなじ かたちに なる から です」'; }
+    if (q.g === 'ana') { return '「あなの ところで せんが ○ほん、こう きれて いる から です」'; }
+    if (q.g === 'hanashi') { return q.model; }
+    return '「○○ だから です」';
+  }
+  WH.frameText = frameText;
+  var PRAISE = ['よく みくらべたね', 'じゅんばんに みたね', 'さいごまで たしかめたね', 'おちついて えらべたね', 'ていねいに やったね', 'わけまで いえたね'];
+  WH.praise = function () { return pick(PRAISE); };
+  WH.WHY_ASK = ['どうして そう おもったの？', 'どうして それに したの？'];
+
+  /* ================= 描く（画面から よぶ） ================= */
+  WH.stemSize = function (q) {
+    if (q.g === 'shiso') { return [340, 300]; }
+    if (q.g === 'kazoe') { return [360, 280]; }
+    if (q.g === 'wakeru' || q.g === 'kazuhanashi') { return [400, 240]; }
+    if (q.g === 'ana') { return [320, 300]; }
+    if (q.g === 'katachi' && q.sub === 'wake') { return [260, 240]; }
+    if (q.g === 'katachi') { return [280, 260]; }
+    if (q.g === 'onajie') { return [240, 240]; }
+    return [300, 280];
+  };
+  WH.hasStem = function (q) { return q.g !== 'himo' && q.g !== 'kurabe' && q.g !== 'nakama' && q.g !== 'hanashi'; };
+  WH.paintStem = function (q, canvas, hint) {
+    if (q.g === 'shiso') { paintShiso(canvas, q, hint); }
+    else if (q.g === 'kazoe') { paintKazoeStem(canvas, q, hint); }
+    else if (q.g === 'wakeru') { paintWakeru(canvas, q, hint); }
+    else if (q.g === 'kazuhanashi') { paintKazuhanashi(canvas, q, hint); }
+    else if (q.g === 'onajie') { paintFig(canvas, q, q.base, null); }
+    else if (q.g === 'katachi') { paintKatachiStem(canvas, q, hint); }
+    else if (q.g === 'ana') { paintAnaStem(canvas, q, hint); }
+  };
+  WH.choiceSize = function (q) {
+    if (q.cType === 'wide') { return [380, 46]; }
+    if (q.cType === 'shape') { return [110, 110]; }
+    if (q.g === 'kurabe') { return [100, 130]; }
+    if (q.g === 'kazoe') { return [150, 120]; }
+    if (q.g === 'katachi' && q.sub === 'ori') { return [150, 116]; }
+    if (q.g === 'onajie') { return [140, 140]; }
+    return [140, 140];
+  };
+  WH.paintChoice = function (q, i, canvas, hint, pickedWrong) {
+    if (q.g === 'himo') { paintHimoChoice(canvas, q, i, hint); }
+    else if (q.g === 'kurabe') { paintKurabeChoice(canvas, q, i, hint); }
+    else if (q.g === 'shiso') { paintShape(canvas, q.choices[i]); }
+    else if (q.g === 'kazoe') { paintKazoeChoice(canvas, q, i, hint); }
+    else if (q.g === 'onajie') { paintFig(canvas, q, q.choices[i], (hint && pickedWrong === i && q.choices[i].diffKey) ? q.choices[i].diffKey : null); }
+    else if (q.g === 'katachi') { paintKatachiChoice(canvas, q, i, hint); }
+    else if (q.g === 'ana') { paintAnaChoice(canvas, q, i); }
+  };
+  WH.cells = { sig: cellSig, congruent: congruent, connected: connected, union: unionCells, placedUnion: placedUnionIsTarget, norm: normCells };
+  WH.anaLines = anaLines; WH.anaSig = anaSig; WH.figSig = figSig; WH.groupsOf = groupsOf; WH.SHITSUMON = SHITSUMON; WH.WAKE_PAT = WAKE_PAT;
+
+  /* ================= 自己点検（計算の ぶぶん・tools/test.html から よぶ） ================= */
+  WH.selfTest = function (doc) {
+    var out = [], pass = 0, fail = 0;
+    function ok(cond, label) { if (cond) { pass++; } else { fail++; out.push('FAIL ' + label); } }
+    var g, lvl, i, j, k, q, n, s, seen, cnt, a, b, canvas, texts, hits, kk, allText = '';
+    WH.seed(4242);
+    /* T1 ますの 道具 */
+    ok(cellSig([[0, 0], [0, 1]]) === cellSig([[3, 3], [3, 4]]), 'T1 ずらしても おなじ');
+    ok(congruent([[0, 0], [0, 1], [1, 0]], [[0, 1], [1, 0], [1, 1]]), 'T1 まわしても おなじ（L）');
+    ok(!congruent([[0, 0], [0, 1], [0, 2]], [[0, 0], [0, 1], [1, 1]]), 'T1 ちがう かたち');
+    ok(connected([[0, 0], [0, 1], [1, 1]]) && !connected([[0, 0], [2, 2]]), 'T1 つながり');
+    ok(placedUnionIsTarget([[0, 0], [0, 1]], [[0, 0], [0, 1]], rectCells(2, 2)) && !placedUnionIsTarget([[0, 0], [0, 1]], [[0, 0]], rectCells(2, 2)), 'T1 2つで うまる');
+    /* T2 ぜんぶの 型・レベルで 200問＝正解が 1つ（または 決まった 組）・えらびしに 同じもの なし・型ごとの きまり */
+    for (g = 0; g < GENRES.length; g++) {
+      for (lvl = 1; lvl <= 3; lvl++) {
+        for (i = 0; i < 200; i++) {
+          q = makeQuestion(GENRES[g].id, lvl);
+          ok(q && q.g === GENRES[g].id, 'T2 ' + GENRES[g].id + ' lv' + lvl + ' 作れる');
+          if (!q) { continue; }
+          texts = [questionText(q), hintText(q), whyText(q), frameText(q)];
+          for (j = 0; j < texts.length; j++) { ok(typeof texts[j] === 'string' && texts[j].length > 3, 'T2 ' + q.g + ' 文が ある ' + j); allText += texts[j] + '\n'; }
+          if (q.kind === 'open') { ok(q.g === 'hanashi' || q.g === 'nakama', 'T2 open は おはなし か なかま'); ok(WH.timeFor(q) === 0, 'T2 open は 時間なし'); continue; }
+          ok(WH.timeFor(q) >= 15 && WH.timeFor(q) <= 60, 'T2 ' + q.g + ' 時間 15〜60');
+          if (q.kind === 'multi') {
+            ok(q.answerSets && q.answerSets.length >= 1 && q.answerSets[0].length === q.need, 'T2 ' + q.g + ' multi の こたえの 組');
+            if (q.g === 'katachi') {
+              /* 正しい 2つ だけが target を うめる（ほかの どの 2つも うめない） */
+              cnt = 0;
+              for (j = 0; j < 4; j++) { for (k = j + 1; k < 4; k++) { if (placedUnionIsTarget(normCells(q.choices[j]), q.choices[k], normCells(q.target)) || placedUnionIsTarget(normCells(q.choices[k]), q.choices[j], normCells(q.target))) { cnt++; } } }
+              ok(cnt === 1, 'T2 katachi awase target を うめる 組は 1つ（' + cnt + '）');
+              ok(placedUnionIsTarget(normCells(q.choices[q.answerSet[0]]), q.choices[q.answerSet[1]], normCells(q.target)) || placedUnionIsTarget(normCells(q.choices[q.answerSet[1]]), q.choices[q.answerSet[0]], normCells(q.target)), 'T2 katachi awase こたえの 2つで うまる');
+            }
+            if (q.g === 'nakama') {
+              for (j = 0; j < 3; j++) { for (k = 0; k < 3; k++) { ok(!sharesGroup(itemById(q.choices[q.setA[j]]), itemById(q.choices[q.setB[k]])), 'T2 nakama wakeru2 2つの なかまが まざらない'); } }
+            }
+            continue;
+          }
+          if (q.kind === 'order') { ok(q.answerOrder.length === q.choices.length, 'T2 order'); for (j = 1; j < q.answerOrder.length; j++) { ok(q.vals[q.answerOrder[j - 1]] > q.vals[q.answerOrder[j]], 'T2 narabe おおきい じゅん'); } continue; }
+          ok(q.choices.length >= 3 && q.choices.length <= 5, 'T2 ' + q.g + ' えらびし 3〜5 =' + q.choices.length);
+          ok(q.answerIndex >= 0 && q.answerIndex < q.choices.length, 'T2 ' + q.g + ' 正解が ある lv' + lvl);
+          seen = {}; cnt = 0;
+          for (j = 0; j < q.choices.length; j++) {
+            if (q.g === 'onajie') { s = figSig(q.choices[j]); }
+            else if (q.g === 'katachi' && q.sub !== 'wake') { s = cellSig(q.choices[j]); }
+            else if (q.g === 'katachi') { s = q.choices[j].key; }
+            else if (q.g === 'ana') { s = q.choices[j].sig; }
+            else if (q.g === 'himo') { s = String(q.knots[j]); }
+            else { s = String(q.choices[j]); }
+            if (seen[s]) { cnt++; } seen[s] = true;
+          }
+          ok(cnt === 0, 'T2 ' + q.g + ' 同じ えらびし なし lv' + lvl + (cnt ? ' ' + q.sub : ''));
+          if (q.g === 'himo') { ok(himoAnswer(q.knots, q.ask) === q.answerIndex, 'T2 himo こたえ'); if (lvl === 1) { ok(q.knots.length === 3, 'T2 himo やさしい 3ぼん'); } }
+          if (q.g === 'kurabe' && q.sub === 'cup') { for (j = 0; j < q.choices.length; j++) { if (q.ask === 'most') { ok(q.vals[q.answerIndex] <= q.vals[j], 'T2 cup most＝のこり さいしょう'); } if (q.ask === 'least') { ok(q.vals[q.answerIndex] >= q.vals[j], 'T2 cup least'); } } }
+          if (q.g === 'shiso') { for (j = 0; j < q.pairs.length; j++) { a = q.order.indexOf(q.pairs[j].left); b = q.order.indexOf(q.pairs[j].right); ok((a < b) === (q.pairs[j].down === 'left'), 'T2 shiso さがる側が おもい'); } }
+          if (q.g === 'kazoe' && q.sub === 'count') { cnt = 0; for (j = 0; j < q.items.length; j++) { if (q.items[j].kind === q.target) { cnt++; } } ok(cnt === q.answer && q.choices[q.answerIndex] === cnt && cnt < q.items.length, 'T2 kazoe count'); if (lvl === 3) { ok(q.items.length >= 16, 'T2 kazoe むずかしい は 16こ 以上'); } }
+          if (q.g === 'kazoe' && q.sub === 'diff') { ok(q.answer === Math.abs(q.left - q.right) && q.ptsL.length === q.left && q.ptsR.length === q.right, 'T2 kazoe diff'); }
+          if (q.g === 'kazoe' && q.sub === 'same') { ok(q.counts[q.answerIndex] === q.left && q.pts[q.answerIndex].length === q.left, 'T2 kazoe same'); }
+          if (q.g === 'wakeru') { if (q.sub === 'zutsu') { ok(q.answer === q.people * q.each, 'T2 wakeru zutsu'); } if (q.sub === 'hitoshiku') { ok(q.answer * q.people === q.total, 'T2 wakeru hitoshiku'); } if (q.sub === 'amari') { ok(q.total - q.people === q.answer && q.answer >= 1, 'T2 wakeru amari'); } }
+          if (q.g === 'kazuhanashi') { a = q.start; for (j = 0; j < q.steps.length; j++) { a += q.steps[j]; } ok(a === q.answer && a >= 0 && a <= 12 && q.steps.length === lvl, 'T2 kazuhanashi'); ok(q.storyText.indexOf('いくつ') > 0, 'T2 kazuhanashi 文'); }
+          if (q.g === 'nakama' && q.sub === 'hazure') {
+            cnt = 0; for (j = 0; j < 4; j++) { if (groupsOf(itemById(q.choices[j])).indexOf(q.group) >= 0) { cnt++; } }
+            ok(cnt === 3 && groupsOf(itemById(q.choices[q.answerIndex])).indexOf(q.group) < 0, 'T2 nakama 3つが なかま・1つが はずれ');
+            for (j = 0; j < 4; j++) { if (j !== q.answerIndex) { ok(!sharesGroup(itemById(q.choices[j]), itemById(q.choices[q.answerIndex])), 'T2 nakama はずれは だれとも なかまを 共有しない'); } }
+          }
+          if (q.g === 'onajie') { cnt = 0; for (j = 0; j < q.choices.length; j++) { if (figSig(q.choices[j]) === figSig(q.base)) { cnt++; } } ok(cnt === 1, 'T2 onajie おなじ えは 1つ'); for (j = 0; j < q.choices.length; j++) { if (j === q.answerIndex) { continue; } cnt = 0; for (kk in q.base) { if (q.base.hasOwnProperty(kk) && q.base[kk] !== q.choices[j][kk]) { cnt++; } } ok(cnt === 1, 'T2 onajie まちがいは 1か所だけ ちがう'); } }
+          if (q.g === 'katachi' && q.sub === 'kirenai') { for (j = 0; j < 4; j++) { if (j === q.answerIndex) { for (k = 0; k < 3; k++) { ok(!congruent(q.choices[j], q.parts[k]), 'T2 kirenai にせものは どの かけらとも ちがう'); } } } }
+          if (q.g === 'katachi' && q.sub === 'ori') { s = {}; for (j = 0; j < q.full.length; j++) { s[cellKey(q.full[j][0], q.full[j][1])] = true; } for (j = 0; j < q.full.length; j++) { ok(!!s[cellKey(q.full[j][0], 3 - q.full[j][1])], 'T2 ori こたえは おりめで 左右対称'); } }
+          if (q.g === 'ana') { ok(q.choices[q.answerIndex].sig === anaSig(q.xs, q.ys, q.cx, q.cy, q.r), 'T2 ana こたえ＝あなの 線'); }
+        }
+      }
+    }
+    /* T3 絵が ぜんぶ 描ける（例外なし） */
+    if (doc && doc.createElement) {
+      canvas = doc.createElement('canvas'); canvas.width = 200; canvas.height = 200; canvas.style.width = '200px'; canvas.style.height = '200px';
+      for (g = 0; g < GENRES.length; g++) {
+        for (lvl = 1; lvl <= 3; lvl++) {
+          for (i = 0; i < 6; i++) {
+            q = makeQuestion(GENRES[g].id, lvl);
+            try {
+              if (WH.hasStem(q)) { WH.paintStem(q, canvas, false); WH.paintStem(q, canvas, true); }
+              if (q.kind !== 'open' && q.cType !== 'num' && q.cType !== 'img') { for (j = 0; j < q.choices.length; j++) { WH.paintChoice(q, j, canvas, true, j); } }
+              ok(true, 'T3');
+            } catch (e) { ok(false, 'T3 ' + q.g + ' ' + q.sub + ' lv' + lvl + ' ' + e); }
+          }
+        }
+      }
+      for (i = 0; i < WH.PICS.length; i++) { try { WH.paintPic(canvas, WH.PICS[i].id); WH.paintTree(canvas, 3, WH.PICS[i].id, 24); ok(true, 'T3 pic'); } catch (e2) { ok(false, 'T3 pic ' + WH.PICS[i].id + ' ' + e2); } }
+      for (i = 0; i < 4; i++) { try { WH.paintTree(canvas, i, WH.PICS[0].id, i * 6); ok(true, 'T3 tree'); } catch (e3) { ok(false, 'T3 tree ' + i + ' ' + e3); } }
+    }
+    /* T4 みのり・レベル・絵の 一覧 */
+    s = WH.freshState();
+    ok(WH.addFruits(s, 5).length === 0 && WH.stageOf(s.cFruits) === 0, 'T4 5こは たね');
+    ok(WH.addFruits(s, 1)[0].kind === 'stage', 'T4 6こで め');
+    WH.addFruits(s, 18); ok(s.zukan.length === 1 && s.zukan[0] === WH.PICS[0].id && s.cFruits === 0, 'T4 24こで いきものが くる');
+    ok(WH.nextLevel(1, 4, 5) === 2 && WH.nextLevel(3, 5, 5) === 3 && WH.nextLevel(2, 2, 5) === 1 && WH.nextLevel(1, 1, 5) === 1 && WH.nextLevel(2, 3, 5) === 2, 'T4 レベルの 上げ下げ');
+    ok(WH.ITEMS.length === 66, 'T4 絵は 66');
+    seen = {}; for (n = 0; n < WH.ITEMS.length; n++) { ok(!seen[WH.ITEMS[n].id], 'T4 id 重複 ' + WH.ITEMS[n].id); seen[WH.ITEMS[n].id] = true; }
+    for (i = 0; i < GROUPS.length; i++) { ok(itemsWhere(GROUPS[i].fn).length >= 3, 'T4 なかま ' + GROUPS[i].key + ' は 3つ 以上'); }
+    ok(WH.makeFor('hanashi', 2, 'hitori').kind !== 'open' && WH.makeFor('hanashi', 2, 'sensei').g === 'hanashi', 'T4 ひとりで は open を 出さない');
+    /* T5 おと */
+    (function () {
+      var name, seq, bad = 0, types = { sine: 1, square: 1, triangle: 1 }, keep = WH.snd.ctx, nn;
+      for (name in WH.SOUNDS) { if (!WH.SOUNDS.hasOwnProperty(name)) { continue; } seq = WH.SOUNDS[name]; for (i = 0; i < seq.length; i++) { nn = seq[i]; if (!WH.NOTE[nn[0]] || !(nn[1] >= 0) || !(nn[2] > 0) || !(nn[3] > 0 && nn[3] <= 1) || !types[nn[4]]) { bad++; } } }
+      ok(bad === 0, 'T5 おとの ならび');
+      WH.snd.ctx = null; ok(WH.snd.play('ok') === false, 'T5 おとの しくみが ない ときは ならさず とまらない'); WH.snd.ctx = keep;
+    })();
+    /* K4 音の 起こしなおし */
+    (function () {
+      var snd = WH.snd, keep = snd.ctx, keepOn = snd.on, called = 0, fake, r1, r2, r3, c1, c2, wav;
+      function nop() {}
+      function node() { return { type: '', frequency: { setValueAtTime: nop }, gain: { setValueAtTime: nop, linearRampToValueAtTime: nop, exponentialRampToValueAtTime: nop }, connect: nop, start: nop, stop: nop }; }
+      fake = { state: 'suspended', currentTime: 0, destination: {}, createOscillator: node, createGain: node, resume: function () { called++; fake.state = 'running'; } };
+      snd.on = true; snd.ctx = fake;
+      r1 = snd.play('tap'); c1 = called;
+      r2 = snd.play('tap'); c2 = called;
+      fake.state = 'interrupted'; r3 = snd.play('ok');
+      snd.ctx = keep; snd.on = keepOn;
+      ok(r1 === true && c1 === 1, 'K4 とまった しくみで ならすと resume が よばれる');
+      ok(r2 === true && c2 === 1, 'K4 うごいて いる ときは resume を よばない');
+      ok(r3 === true && called === 2, 'K4 interrupted でも おこしなおす');
+      fake = { state: 'suspended', resume: function () { throw new Error('x'); } };
+      ok(WH.wakeAudio(fake) === false, 'K4 resume が しっぱい しても とまらない');
+      wav = WH.silentWav();
+      ok(wav.indexOf('data:audio/wav;base64,UklGR') === 0 && wav.length > 5000, 'K4 むおんの WAV が つくれる');
+      out.push('K4 ' + (c1 === 1 && c2 === 1 && called === 2 ? 'OK' : 'NG') + ' おとの しくみが とまって いたら ならす まえに resume');
+    })();
+    /* K22 きんしご・K24 ひていけいの やくそく＝もんだい文・ヒント・わけ・いいかたの かた・ほめことば・しつもん の 全部 */
+    for (i = 0; i < PRAISE.length; i++) { allText += PRAISE[i] + '\n'; }
+    for (i = 0; i < SHITSUMON.length; i++) { allText += SHITSUMON[i].q + '\n' + SHITSUMON[i].model + '\n'; }
+    for (i = 0; i < GENRES.length; i++) { allText += GENRES[i].name + ' ' + GENRES[i].sub + '\n'; }
+    hits = WH.banHits(allText); ok(hits.length === 0, 'K22 きんしご ' + hits.join(','));
+    out.push('K22 ' + (hits.length === 0 ? 'OK' : 'NG') + ' きんしご 0けん（' + allText.length + 'もじ を しらべた）');
+    hits = WH.negHits(allText); ok(hits.length === 0, 'K24 ひていけい ' + hits.join(','));
+    out.push('K24 ' + (hits.length === 0 ? 'OK' : 'NG') + ' ひていけいの やくそく 0けん');
+    WH.seed(null);
+    out.unshift('PASS=' + pass + ' FAIL=' + fail);
+    return out;
+  };
+})(typeof window !== 'undefined' ? window : this);
+</script>
+<script>
+/* わけを はなそう ―― 画面（ui.js・古い Safari で動く書き方だけ）
+   2つの あそびかた＝
+     ひとりで   … 子が じぶんで タップ。もんだい文は 画面に 出て、よみあげも できる
+     せんせいと … おとなが テスター役。もんだい文は おとなが 1かい だけ よむ（よんだら 文は かくれる）。
+                  子は たって、ゆびさし（おとなが かわりに タップ）か こえで こたえ、「どうして？」に わけを はなす。
+                  おとなが「はなせた／てつだって／もうすこし」を おして きろくする。そのあと せいかいかどうかが 出る */
+(function (global) {
+  'use strict';
+  var WH = global.WH, doc = global.document;
+  var S = WH.loadState();          /* きろく */
+  var G = null;                    /* いま あそんでいる 1まわり */
+  var screen = 'home';
+
+  function el(id) { return doc.getElementById(id); }
+  function setText(node, t) { if (node) { node.textContent = t; } }
+  function showEl(id, on) { var n = el(id); if (n) { n.style.display = on ? '' : 'none'; } }
+  function show(id) {
+    var ids = ['scr-home', 'scr-ready', 'scr-play', 'scr-result', 'scr-zukan', 'scr-grown'], i;
+    for (i = 0; i < ids.length; i++) { el(ids[i]).style.display = (ids[i] === 'scr-' + id) ? 'block' : 'none'; }
+    screen = id;
+    if (id === 'home') { checkUpdate(); reloadIfIdle(); }
+    global.scrollTo(0, 0);
+  }
+  function on(id, fn) { var n = el(id); if (n) { n.addEventListener('click', fn, false); } }
+  function sizeCanvas(c, w, h) { c.style.width = w + 'px'; c.style.height = h + 'px'; c.setAttribute('width', String(w)); c.setAttribute('height', String(h)); }
+  function hasCls(n, c) { return !!(n && n.className && (' ' + n.className + ' ').indexOf(' ' + c + ' ') >= 0); }
+  function addCls(n, c) { if (!n || hasCls(n, c)) { return; } n.className = n.className ? n.className + ' ' + c : c; }
+  function delCls(n, c) { if (!hasCls(n, c)) { return; } n.className = (' ' + n.className + ' ').replace(' ' + c + ' ', ' ').replace(/^\s+|\s+$/g, ''); }
+  function sensei() { return S.mode === 'sensei'; }
+
+  /* ================= はじめの がめん ================= */
+  function renderHome() {
+    var who = S.name ? S.name + ' の' : '', stage = WH.stageOf(S.cFruits), pic = WH.PICS[S.cIndex % WH.PICS.length];
+    var next = WH.nextRankAt(S.total), need = WH.GROW[3] - S.cFruits, i, g, st, box = el('genre-list'), b;
+    setText(el('home-rank'), who + ' ' + WH.rankOf(S.total));
+    setText(el('home-fruits'), 'みのり ' + S.total + 'こ' + (next !== null ? '（つぎまで あと ' + (next - S.total) + 'こ）' : '（いちばん うえ！）'));
+    setText(el('home-stage'), WH.STAGE_NAME[stage] + (stage === 3 ? '' : '（おおきな きまで あと ' + need + 'こ）'));
+    setText(el('home-creature'), stage >= 2 ? pic.name + ' が くるかな？' : 'だれが くるかな？');
+    WH.paintTree(el('home-tree'), stage, pic.id, S.cFruits);
+    setText(el('home-zukan-count'), 'ずかん ' + S.zukan.length + 'ひき');
+    setText(el('home-ver'), '（v' + WH.APP_VERSION + '）');
+    el('mode-hitori').className = 'mbtn' + (sensei() ? '' : ' now');
+    el('mode-sensei').className = 'mbtn' + (sensei() ? ' now' : '');
+    setText(el('mode-note'), sensei() ? 'おとなが せんせい。もんだいは 1かい だけ よむよ。たって こたえて、わけを はなそう' : 'じぶんで タップして こたえよう。おわったら おうちの ひとに わけを はなそう');
+    box.innerHTML = '';
+    for (i = 0; i < WH.GENRES.length; i++) {
+      g = WH.GENRES[i]; st = S.g[g.id];
+      if (g.open && !sensei()) { continue; }
+      b = doc.createElement('button'); b.className = 'gbtn g-' + g.id; b.setAttribute('data-g', g.id);
+      b.innerHTML = '<b>' + g.name + '</b><span>' + g.sub + '</span><span class="rec">' + WH.LEVEL_NAME[st.level] + (st.rounds ? '・' + st.ok + '／' + st.q + (sensei() ? '・わけ ' + st.exp : '') : '') + '</span>';
+      box.appendChild(b);
+    }
+    b = doc.createElement('button'); b.className = 'gbtn g-mix'; b.setAttribute('data-g', 'mix');
+    b.innerHTML = '<b>まぜまぜ</b><span>いろいろな もんだいが つぎつぎ（ほんばんみたい）</span><span class="rec">' + (S.mix.rounds ? S.mix.ok + '／' + S.mix.q + ' せいかい' : '') + '</span>';
+    box.appendChild(b);
+  }
+
+  /* ================= 1まわり ================= */
+  function startRound(gid) {
+    var i, qs = [], order = [], lv, ids = [];
+    for (i = 0; i < WH.GENRES.length; i++) { if (!WH.GENRES[i].open || sensei()) { ids.push(WH.GENRES[i].id); } }
+    if (gid === 'mix') {
+      while (order.length < S.perRound) { order = order.concat(WH.shuffle(ids)); }
+      for (i = 0; i < S.perRound; i++) { qs.push(WH.makeFor(order[i], S.g[order[i]].level, S.mode)); }
+    } else {
+      lv = S.g[gid].level;
+      for (i = 0; i < S.perRound; i++) { qs.push(WH.makeFor(gid, lv, S.mode)); }
+    }
+    G = { gid: gid, qs: qs, idx: 0, ok: 0, firstOk: 0, firstOkMain: 0, exp: 0, fruits: 0, tries: 0, done: false, streak: 0, hint: false, planned: qs.length, picks: [], why: null, pending: null, read: false };
+    if (sensei()) { renderReady(); show('ready'); return; }
+    show('play');
+    renderQuestion();
+  }
+  /* せんせいと＝はじめる まえの 3つの やくそく（たつ・1かいで きく・さいごまで いう） */
+  function renderReady() {
+    setText(el('ready-name'), (S.name ? S.name + '、' : '') + 'せんせいと れんしゅう');
+    setText(el('ready-count'), G.qs.length + 'もん');
+  }
+  function beginFromReady() { show('play'); renderQuestion(); }
+
+  /* ================= 制限時間（へっていく ぼう） ================= */
+  var TM = { on: true, total: 0, left: 0, timer: null };
+  function stopTimer() { if (TM.timer) { global.clearInterval(TM.timer); TM.timer = null; } }
+  function paintTimer() {
+    var bar = el('tbar'), r = TM.total > 0 ? TM.left / TM.total : 0;
+    el('tbar-fill').style.width = Math.max(0, Math.min(100, r * 100)) + '%';
+    setText(el('tbar-txt'), 'のこり ' + Math.ceil(TM.left) + ' びょう');
+    bar.className = 'tbar' + (r <= 0.25 ? ' low' : (r <= 0.5 ? ' mid' : ''));
+  }
+  function startTimer(sec) {
+    stopTimer();
+    el('tbar').style.display = (TM.on && sec > 0) ? 'block' : 'none';
+    if (!TM.on || !(sec > 0)) { return; }
+    TM.total = sec; TM.left = sec; paintTimer();
+    TM.timer = global.setInterval(function () {
+      TM.left -= 0.25;
+      if (TM.left <= 0) { TM.left = 0; paintTimer(); stopTimer(); onTimeout(); return; }
+      paintTimer();
+    }, 250);
+  }
+  /* じかんぎれ＝まちがい 1回と おなじ あつかい（1回目＝ヒント＋もう いちど／2回目＝こたえ）。ばつは ない */
+  function onTimeout() {
+    var q = G.qs[G.idx];
+    if (!G || G.done || screen !== 'play' || G.why) { return; }
+    G.tries++; G.streak = 0; G.wrongOnce = true;
+    if (G.tries === 1) {
+      WH.snd.play('oshii');
+      giveHint(q, -1);
+      setText(el('msg'), 'じかんだよ！ ' + WH.hintText(q) + ' もう いちど');
+      el('msg').className = 'msg warn';
+      startTimer(WH.timeFor(q));
+    } else {
+      revealAnswer(q, 'じかんだよ。');
+    }
+  }
+
+  /* ================= もんだいを 出す ================= */
+  function imgTag(id, cls) { return '<img class="' + (cls || 'cimg') + '" src="img/' + id + '.png" alt="">'; }
+  function renderQuestion() {
+    var q = G.qs[G.idx], box = el('choices'), i, c, wrap, lab, g = WH.genreById(q.g), sz = WH.stemSize(q), stem = el('q-stem'), cs = WH.choiceSize(q), s;
+    G.tries = 0; G.done = false; G.hint = false; G.picks = []; G.why = null; G.pending = null; G.read = false; G.wrongOnce = false; G.expNow = null;
+    stopTimer(); WH.snd.hush();
+    setText(el('play-genre'), g.name + '（' + WH.LEVEL_NAME[q.level] + '）' + (q.retest ? '・もう いちど' : ''));
+    setText(el('play-no'), (G.idx + 1) + ' ／ ' + G.qs.length + ' もんめ');
+    setText(el('play-mode'), sensei() ? 'せんせいと' : 'ひとりで');
+    setText(el('q-text'), WH.questionText(q));
+    showEl('why-box', false); showEl('frame-box', false);
+    /* せんせいと＝もんだい文は おとなの おびに。子の ますには 出さない。よむ ボタンも 出さない */
+    showEl('q-text', !sensei());
+    showEl('say-btn', !sensei());
+    showEl('sensei-box', sensei());
+    if (sensei()) { setText(el('sensei-text'), WH.questionText(q)); showEl('sensei-text', true); showEl('sensei-read', true); showEl('sensei-again', false); setText(el('sensei-note'), 'おとなが 1かい だけ よむ → 「よんだよ」'); }
+    /* おてほんの 絵 */
+    if (WH.hasStem(q)) {
+      stem.style.display = 'block'; el('q-stem-html').style.display = 'none';
+      sizeCanvas(stem, sz[0], sz[1]);
+      WH.paintStem(q, stem, false);
+      showEl('q-box', true);
+    } else if (q.g === 'nakama' && q.sub === 'niteiru') {
+      stem.style.display = 'none'; el('q-stem-html').style.display = 'block'; el('q-stem-html').innerHTML = imgTag(q.pair[0], 'bigimg') + imgTag(q.pair[1], 'bigimg'); showEl('q-box', true);
+    } else if (q.g === 'hanashi' && q.pics) {
+      stem.style.display = 'none'; el('q-stem-html').style.display = 'block'; s = ''; for (i = 0; i < q.pics.length; i++) { s += imgTag(q.pics[i], q.pics.length === 3 ? 'midimg' : 'bigimg'); } el('q-stem-html').innerHTML = s; showEl('q-box', true);
+    } else if (q.g === 'hanashi') {
+      stem.style.display = 'none'; el('q-stem-html').style.display = 'block'; el('q-stem-html').innerHTML = '<div class="bigq">' + (sensei() ? '' : WH.questionText(q)) + '</div>'; showEl('q-box', true);
+    } else { showEl('q-box', !sensei()); stem.style.display = 'none'; el('q-stem-html').style.display = 'none'; }
+    /* えらびし */
+    box.innerHTML = ''; box.className = 'choices' + (q.cType === 'wide' ? ' wide' : '') + (q.g === 'nakama' && q.kind === 'multi' ? ' six' : '');
+    showEl('open-box', q.kind === 'open');
+    box.style.display = q.kind === 'open' ? 'none' : '';
+    if (q.kind !== 'open') {
+      for (i = 0; i < q.choices.length; i++) {
+        wrap = doc.createElement('div'); wrap.className = 'choice' + (q.cType === 'num' ? ' choice-num' : (q.cType === 'shape' ? ' choice-shape' : (q.cType === 'img' ? ' choice-img' : (q.cType === 'wide' ? ' choice-wide' : ' choice-cv')))); wrap.setAttribute('data-i', String(i));
+        if (q.cType === 'num') { wrap.innerHTML = '<div class="cnum">' + q.choices[i] + '</div>'; }
+        else if (q.cType === 'img') { wrap.innerHTML = imgTag(q.choices[i]); }
+        else { c = doc.createElement('canvas'); c.className = 'cv'; sizeCanvas(c, cs[0], cs[1]); wrap.appendChild(c); }
+        lab = doc.createElement('div'); lab.className = 'mark'; wrap.appendChild(lab);
+        box.appendChild(wrap);
+      }
+      paintChoices();
+    }
+    setText(el('msg'), q.kind === 'open' ? (sensei() ? 'こえに だして はなしてね。おわったら おとなが「はなし おわった」' : '') : (q.kind === 'multi' ? q.need + 'つ タップしてね' : (q.kind === 'order' ? 'おおきい じゅんに タップしてね' : 'どれかな？ ' + (sensei() ? 'ゆびで さしてね' : 'タップしてね'))));
+    el('msg').className = 'msg';
+    el('next-btn').style.display = 'none';
+    el('tbar').style.display = 'none';
+    if (!sensei()) { WH.snd.say(WH.questionText(q)); startTimer(WH.timeFor(q)); }
+  }
+  function paintChoices() {
+    var q = G.qs[G.idx], nodes = choiceNodes(), i, cv;
+    for (i = 0; i < nodes.length; i++) { cv = nodes[i].getElementsByTagName('canvas')[0]; if (cv) { WH.paintChoice(q, i, cv, G.hint, G.lastWrong); } }
+  }
+  function choiceNodes() { return el('choices').getElementsByClassName('choice'); }
+  /* せんせい＝よんだよ（ここから 時間が はじまり、文は かくれる＝1かいで きく） */
+  function senseiRead() {
+    var q = G.qs[G.idx];
+    G.read = true;
+    showEl('sensei-text', false); showEl('sensei-read', false); showEl('sensei-again', true);
+    setText(el('sensei-note'), 'こたえを まつ（ゆびさし＝おとなが かわりに タップ）');
+    if (q.kind !== 'open') { startTimer(WH.timeFor(q)); }
+  }
+  function senseiAgain() { G.reread = (G.reread || 0) + 1; showEl('sensei-text', true); setText(el('sensei-note'), 'ほんばんは 1かい だけ。れんしゅう では もういちど（' + G.reread + 'かいめ）'); }
+
+  /* ================= こたえる ================= */
+  function onChoice(i) {
+    var q = G.qs[G.idx], nodes = choiceNodes(), node = nodes[i], p, k;
+    if (G.done || G.why || q.kind === 'open') { return; }
+    if (q.kind === 'multi') {
+      p = G.picks.indexOf(i);
+      if (p >= 0) { G.picks.splice(p, 1); delCls(node, 'picked'); setText(node.getElementsByClassName('mark')[0], ''); }
+      else { if (G.picks.length >= q.need) { return; } G.picks.push(i); addCls(node, 'picked'); setText(node.getElementsByClassName('mark')[0], '○'); WH.snd.play('pick'); }
+      if (G.picks.length === q.need) { submit(G.picks.slice().sort(function (a, b) { return a - b; })); }
+      return;
+    }
+    if (q.kind === 'order') {
+      if (G.picks.indexOf(i) >= 0) { return; }
+      G.picks.push(i); addCls(node, 'picked'); setText(node.getElementsByClassName('mark')[0], String(G.picks.length)); WH.snd.play('pick');
+      if (G.picks.length === q.choices.length) { submit(G.picks.slice()); }
+      return;
+    }
+    for (k = 0; k < nodes.length; k++) { delCls(nodes[k], 'picked'); }
+    addCls(node, 'picked');
+    submit(i);
+  }
+  function isRight(q, ans) {
+    var i, k, set, okset;
+    if (q.kind === 'choose') { return ans === q.answerIndex; }
+    if (q.kind === 'order') { for (i = 0; i < ans.length; i++) { if (ans[i] !== q.answerOrder[i]) { return false; } } return true; }
+    set = ans.join(',');
+    for (k = 0; k < q.answerSets.length; k++) { okset = q.answerSets[k].slice().sort(function (a, b) { return a - b; }).join(','); if (okset === set) { return true; } }
+    return false;
+  }
+  function submit(ans) {
+    var q = G.qs[G.idx];
+    stopTimer();
+    /* せんせいと＝せいかいかどうかの まえに「どうして？」（1もんに 1かい） */
+    if (sensei() && !G.whyDone) { G.pending = ans; showWhy(q); return; }
+    evaluate(q, ans);
+  }
+  function clearPicks() {
+    var nodes = choiceNodes(), k;
+    for (k = 0; k < nodes.length; k++) { delCls(nodes[k], 'picked'); if (!hasCls(nodes[k], 'wrong') && !hasCls(nodes[k], 'right')) { setText(nodes[k].getElementsByClassName('mark')[0], ''); } }
+    G.picks = [];
+  }
+  function evaluate(q, ans) {
+    var nodes = choiceNodes(), i, wrongIdx = -1;
+    if (isRight(q, ans)) {
+      if (q.kind === 'choose') { addCls(nodes[ans], 'right'); setText(nodes[ans].getElementsByClassName('mark')[0], '✓ せいかい'); }
+      else { for (i = 0; i < ans.length; i++) { addCls(nodes[ans[i]], 'right'); } }
+      gotRight(q);
+      return;
+    }
+    G.tries++; G.streak = 0; G.wrongOnce = true;
+    if (q.kind === 'choose') { wrongIdx = ans; addCls(nodes[ans], 'wrong'); setText(nodes[ans].getElementsByClassName('mark')[0], '！ ちがう'); }
+    else { clearPicks(); }
+    if (G.tries === 1) {
+      WH.snd.play('oshii');
+      giveHint(q, wrongIdx);
+      setText(el('msg'), 'おしい！ ' + WH.hintText(q) + (q.kind === 'choose' ? '' : ' もう いちど えらんでね'));
+      el('msg').className = 'msg warn';
+      if (sensei()) { startTimer(WH.timeFor(q)); }
+      else { startTimer(WH.timeFor(q)); }
+    } else {
+      revealAnswer(q, '');
+    }
+  }
+  /* 足場 1段目＝やり方の ヒント＋見る場所を 絵で しぼる（答えは 見せない） */
+  function giveHint(q, wrongIdx) {
+    G.hint = true; G.lastWrong = wrongIdx;
+    if (WH.hasStem(q)) { WH.paintStem(q, el('q-stem'), true); }
+    paintChoices();
+    if (q.g === 'kazuhanashi' && !sensei()) { setText(el('q-text'), WH.questionText(q)); }
+  }
+  /* 足場 2段目＝解き方つきの 答え → もう いちど 同じ型の 問題が 2〜4問 あとに 出る（K23） */
+  function revealAnswer(q, head) {
+    var nodes = choiceNodes(), i, k;
+    G.done = true; stopTimer();
+    WH.snd.play('kotae');
+    if (q.kind === 'choose') { addCls(nodes[q.answerIndex], 'right'); setText(nodes[q.answerIndex].getElementsByClassName('mark')[0], '✓ こたえ'); }
+    else if (q.kind === 'order') { for (i = 0; i < q.answerOrder.length; i++) { addCls(nodes[q.answerOrder[i]], 'right'); setText(nodes[q.answerOrder[i]].getElementsByClassName('mark')[0], String(i + 1)); } }
+    else { for (k = 0; k < q.answerSets[0].length; k++) { addCls(nodes[q.answerSets[0][k]], 'right'); setText(nodes[q.answerSets[0][k]].getElementsByClassName('mark')[0], '○'); } }
+    setText(el('msg'), head + 'こたえは これ。' + WH.whyText(q) + planRetest(q));
+    el('msg').className = 'msg warn';
+    el('next-btn').style.display = 'inline-block';
+    afterQuestion(q, false);
+  }
+  function gotRight(q) {
+    var fr = (G.tries === 0) ? 2 : 1, bonus = '';
+    G.done = true; stopTimer();
+    G.ok++; if (G.tries === 0) { G.firstOk++; G.streak++; if (!q.retest) { G.firstOkMain++; } } else { G.streak = 0; }
+    if (G.streak >= 3) { fr += 1; bonus = '（3もん れんぞく！ ＋1）'; WH.snd.play('combo'); } else { WH.snd.play(G.tries === 0 ? 'ok' : 'ok2'); }
+    if (G.expNow === 2) { fr += 1; bonus += '（わけを はなせた ＋1）'; }
+    G.fruits += fr;
+    setText(el('msg'), 'せいかい！ ' + (G.tries === 0 ? WH.praise() + '。' : 'なおせたね。') + 'みのり ' + fr + 'こ ' + bonus + (G.wrongOnce ? planRetest(q) : ''));
+    el('msg').className = 'msg good';
+    el('next-btn').style.display = 'inline-block';
+    afterQuestion(q, true);
+  }
+  function afterQuestion(q, right) {
+    /* ひとりで＝おうちの ひとへの はし（K25） */
+    if (!sensei() && right && G.tries === 0) { setText(el('msg'), el('msg').textContent + ' おうちの ひとに「どうして そう おもった？」を はなして みよう'); }
+  }
+  /* まちがえた もんだい は 2〜4問 あとに もう いちど（同じ型・同じレベル・1問に つき 1回） */
+  function planRetest(q) {
+    var nq, at;
+    if (q.retest || G.planRetested === G.idx) { return ''; }
+    G.planRetested = G.idx;
+    nq = WH.makeFor(q.g, q.level, S.mode); nq.retest = true;
+    at = Math.min(G.qs.length, G.idx + 2 + WH.ri(2));
+    G.qs.splice(at, 0, nq);
+    return ' あとで もう いちど おなじ もんだいが でるよ。';
+  }
+
+  /* ================= どうして？（せんせいと＝わけを はなす） ================= */
+  function showWhy(q) {
+    G.why = true;
+    setText(el('why-ask'), WH.WHY_ASK[WH.ri(2)]);
+    showEl('why-box', true); showEl('frame-box', false); showEl('why-said', false); showEl('why-btns', true);
+    setText(el('msg'), q.kind === 'open' ? 'はなせたかな？ おとなが えらんでね' : 'わけを はなしたら、おとなが えらんでね');
+    el('msg').className = 'msg';
+    WH.snd.play('hanashi');
+  }
+  function rateWhy(exp) {
+    var q = G.qs[G.idx];
+    if (!G.why) { return; }
+    if (exp === 1 && !G.frameShown) {
+      /* てつだって＝いいかたの かたを 見せ、まねして いえたら 1 */
+      G.frameShown = true;
+      setText(el('frame-text'), WH.frameText(q));
+      showEl('frame-box', true); showEl('why-btns', false); showEl('why-said', true);
+      WH.snd.say(WH.frameText(q).replace(/[「」○△]/g, ''));
+      return;
+    }
+    G.expNow = exp; G.frameShown = false;
+    if (exp === 2) { G.exp++; }
+    G.why = false; G.whyDone = true;
+    showEl('why-box', false); showEl('frame-box', false);
+    if (q.kind === 'open') {
+      G.done = true; G.ok++; if (!q.retest) { G.firstOk++; G.firstOkMain++; }
+      G.fruits += (exp === 2 ? 2 : (exp === 1 ? 1 : 0));
+      setText(el('msg'), (exp === 2 ? 'よく はなせたね。みのり 2こ' : (exp === 1 ? 'かたを つかって いえたね。みのり 1こ' : 'つぎは かたを つかって みよう')) + '。たとえば：' + WH.whyText(q));
+      el('msg').className = 'msg good';
+      WH.snd.play(exp === 2 ? 'ok' : 'ok2');
+      el('next-btn').style.display = 'inline-block';
+      return;
+    }
+    evaluate(q, G.pending);
+  }
+
+  function onNext() {
+    G.whyDone = false; G.frameShown = false; G.expNow = null;
+    G.idx++;
+    if (G.idx >= G.qs.length) { finishRound(); return; }
+    renderQuestion();
+  }
+
+  /* ================= けっか ================= */
+  var lastRes = null;
+  function finishRound() {
+    var events, i, lines = [], stars = '', visitor = null, st, newLv, gname;
+    if (G.gid === 'mix') { st = S.mix; gname = 'まぜまぜ'; }
+    else { st = S.g[G.gid]; gname = WH.genreById(G.gid).name; }
+    st.rounds++; st.q += G.qs.length; st.ok += G.ok; st.exp = (st.exp || 0) + G.exp;
+    if (G.gid !== 'mix') {
+      newLv = WH.nextLevel(st.level, G.firstOkMain, G.planned);
+      if (newLv > st.level) { lines.push(gname + ' が「' + WH.LEVEL_NAME[newLv] + '」に あがった！'); }
+      if (newLv < st.level) { lines.push('つぎは「' + WH.LEVEL_NAME[newLv] + '」で れんしゅう'); }
+      st.level = newLv;
+    }
+    events = WH.addFruits(S, G.fruits);
+    WH.saveState(S);
+    for (i = 0; i < G.qs.length; i++) { stars += (i < G.firstOk) ? '★' : (i < G.ok ? '☆' : '・'); }
+    setText(el('res-title'), G.ok === G.qs.length ? 'ぜんぶ せいかい！' : 'おつかれさま！');
+    setText(el('res-score'), gname + '：' + G.qs.length + 'もんちゅう ' + G.ok + 'もん せいかい' + (sensei() ? '・わけを はなせた ' + G.exp + 'もん' : ''));
+    setText(el('res-stars'), stars);
+    setText(el('res-fruits'), 'みのり ＋' + G.fruits + 'こ（ぜんぶで ' + S.total + 'こ）');
+    for (i = 0; i < events.length; i++) {
+      if (events[i].kind === 'stage') { lines.push(WH.STAGE_NAME[events[i].stage] + ' に なった！'); }
+      if (events[i].kind === 'visitor') { visitor = events[i].id; lines.push(WH.picById(events[i].id).name + ' が きに あそびに きた！ ずかんに はいったよ'); }
+      if (events[i].kind === 'lap') { lines.push('ぜんぶの いきものが きた！ ' + events[i].lap + 'しゅうめ'); }
+    }
+    WH.snd.play(G.ok === G.qs.length ? 'perfect' : 'round');
+    if (visitor || events.length) { WH.snd.play('grow', G.ok === G.qs.length ? 1.5 : 1.1); }
+    if (lines.length === 0) { lines.push(WH.STAGE_NAME[WH.stageOf(S.cFruits)] + ' が そだっているよ（おおきな きまで あと ' + (WH.GROW[3] - S.cFruits) + 'こ）'); }
+    setText(el('res-events'), lines.join(' ／ '));
+    /* おとなへの ひとこと（K25）＝つぎに きく ことば */
+    setText(el('res-bridge'), sensei() ? 'おとなの ひとへ：こたえが あっていても「どうして そう おもったの？」と ききましょう。かたは「ほかのは みんな ○○ だけど…」' : 'おうちの ひとに、1もんだけ「どうして そう おもった？」を はなして みよう');
+    el('res-card').className = 'res' + (visitor ? ' born' : '');
+    sizeCanvas(el('res-tree'), visitor ? 200 : 150, visitor ? 200 : 150);
+    lastRes = visitor ? { stage: 3, id: visitor, pic: true } : { stage: WH.stageOf(S.cFruits), id: WH.PICS[S.cIndex % WH.PICS.length].id, pic: false };
+    if (lastRes.pic) { WH.paintPic(el('res-tree'), lastRes.id); } else { WH.paintTree(el('res-tree'), lastRes.stage, lastRes.id, S.cFruits); }
+    stopTimer(); WH.snd.hush();
+    show('result');
+  }
+
+  /* ================= ずかん（きに きた いきもの） ================= */
+  var Z = { page: 0, per: 10, all: false };
+  function renderZukan() {
+    var box = el('zukan-list'), i, pic, card, c, got, cv, pages = Math.ceil(WH.PICS.length / Z.per), from, to;
+    if (Z.page < 0) { Z.page = 0; } if (Z.page > pages - 1) { Z.page = pages - 1; }
+    from = Z.page * Z.per; to = Math.min(WH.PICS.length, from + Z.per);
+    box.innerHTML = '';
+    for (i = from; i < to; i++) {
+      pic = WH.PICS[i];
+      got = 0; for (c = 0; c < S.zukan.length; c++) { if (S.zukan[c] === pic.id) { got++; } }
+      if (Z.all && !got) { got = 1; }
+      card = doc.createElement('div'); card.className = 'zcard' + (got ? '' : ' none');
+      cv = doc.createElement('canvas'); sizeCanvas(cv, 120, 120); card.appendChild(cv);
+      card.appendChild(doc.createElement('div')).textContent = got ? pic.name + (got > 1 ? ' ×' + got : '') : '？？？';
+      box.appendChild(card);
+      if (got) { WH.paintPic(cv, pic.id); } else { WH.paintTree(cv, 0, pic.id, 0); }
+    }
+    setText(el('zukan-page'), (Z.page + 1) + ' ／ ' + pages + ' ページ（' + (Z.all ? 'ぜんぶ みる' : S.zukan.length + '／' + WH.PICS.length + ' ひき') + '）');
+    el('zukan-prev').style.visibility = Z.page > 0 ? 'visible' : 'hidden';
+    el('zukan-next').style.visibility = Z.page < pages - 1 ? 'visible' : 'hidden';
+  }
+  WH.onImgReady = function () {
+    if (screen === 'zukan') { renderZukan(); }
+    else if (screen === 'result' && lastRes && lastRes.pic) { WH.paintPic(el('res-tree'), lastRes.id); }
+    else if (screen === 'home') { renderHome(); }
+  };
+
+  /* ================= おとなのひと ================= */
+  function renderGrown() {
+    var t = el('grown-table'), i, rows = '', g, st;
+    el('grown-name').value = S.name || '';
+    el('grown-per').value = String(S.perRound);
+    el('grown-mode').value = S.mode;
+    el('grown-snd').value = (S.sound === false) ? 'off' : 'on';
+    el('grown-voice').value = (S.voice === false) ? 'off' : 'on';
+    for (i = 0; i < WH.GENRES.length; i++) {
+      g = WH.GENRES[i]; st = S.g[g.id];
+      rows += '<tr><td>' + g.name + '</td><td>' + WH.LEVEL_NAME[st.level] + '</td><td>' + st.rounds + '</td><td>' + st.q + '</td><td>' + st.ok + '</td><td>' + (st.exp || 0) + '</td></tr>';
+    }
+    rows += '<tr><td>まぜまぜ</td><td>−</td><td>' + S.mix.rounds + '</td><td>' + S.mix.q + '</td><td>' + S.mix.ok + '</td><td>' + (S.mix.exp || 0) + '</td></tr>';
+    t.innerHTML = '<tr><th>かた</th><th>レベル</th><th>かい</th><th>もん</th><th>せいかい</th><th>わけ</th></tr>' + rows;
+    setText(el('grown-ver'), 'v' + WH.APP_VERSION + '・みのり ' + S.total + '・ずかん ' + S.zukan.length);
+    el('reset-2').style.display = 'none';
+  }
+  var holdTimer = null;
+  function holdStart() { holdTimer = global.setTimeout(function () { holdTimer = null; renderGrown(); show('grown'); }, 1200); }
+  function holdEnd() { if (holdTimer) { global.clearTimeout(holdTimer); holdTimer = null; } }
+
+  /* ================= 版の 取りなおし ================= */
+  function tidyUrl() {
+    if (!global.history || !global.history.replaceState) { return; }
+    if (global.location.search.indexOf('v=') < 0) { return; }
+    try { global.history.replaceState(null, '', global.location.pathname); } catch (e) { /* 見ためだけ */ }
+  }
+  function checkUpdate() {
+    var x;
+    if (!global.XMLHttpRequest) { return; }
+    try { x = new global.XMLHttpRequest(); } catch (e) { return; }
+    try { x.open('GET', 'version.txt?t=' + (new Date()).getTime(), true); } catch (e2) { return; }
+    x.onreadystatechange = function () {
+      var v, now, last = null, part;
+      if (x.readyState !== 4 || x.status !== 200) { return; }
+      v = parseInt(String(x.responseText).replace(/[^0-9]/g, ''), 10);
+      now = (new Date()).getTime();
+      if (!(v > WH.APP_VERSION)) { return; }
+      try { last = global.sessionStorage.getItem(WH.UPD_KEY); } catch (e3) { /* 無くても進む */ }
+      if (last) { part = String(last).split(':'); if (part[0] === String(v) && (now - parseInt(part[1], 10)) < 30000) { return; } }
+      if (screen !== 'home') { return; }
+      try { global.sessionStorage.setItem(WH.UPD_KEY, v + ':' + now); } catch (e4) { /* 無くても進む */ }
+      global.location.replace('./?v=' + v);
+    };
+    try { x.send(null); } catch (e5) { /* 通信できなくても あそべる */ }
+  }
+  var cacheReady = false;
+  function reloadIfIdle() { if (!cacheReady || screen !== 'home') { return; } cacheReady = false; global.location.reload(); }
+  function watchCache() {
+    var ac = global.applicationCache;
+    if (!ac || !ac.addEventListener) { return; }
+    ac.addEventListener('updateready', function () { try { ac.swapCache(); } catch (e) { /* つぎに */ } cacheReady = true; reloadIfIdle(); }, false);
+  }
+
+  /* ================= 押した 手ごたえ（K26） ================= */
+  function inAdult(n) { var k = 0; while (n && k < 12) { if (n.id === 'scr-grown') { return true; } n = n.parentNode; k++; } return false; }
+  function pressTarget(n) {
+    var k = 0;
+    while (n && k < 5) {
+      if (n.tagName === 'BUTTON' || hasCls(n, 'choice')) {
+        if (n.id === 'grown-btn' || inAdult(n)) { return null; }
+        return n;
+      }
+      n = n.parentNode; k++;
+    }
+    return null;
+  }
+  var pressed = null;
+  function pressOn(ev) { var n = pressTarget(ev.target); if (pressed && pressed !== n) { delCls(pressed, 'press'); } pressed = n; if (n) { addCls(n, 'press'); } }
+  function pressOff() { if (pressed) { delCls(pressed, 'press'); pressed = null; } }
+  function bindPress() {
+    doc.addEventListener('touchstart', function (ev) { try { pressOn(ev); } catch (e) { /* 見た目だけ */ } }, false);
+    doc.addEventListener('touchend', function () { try { pressOff(); } catch (e) { /* 見た目だけ */ } }, false);
+    doc.addEventListener('touchcancel', function () { try { pressOff(); } catch (e) { /* 見た目だけ */ } }, false);
+    doc.addEventListener('click', function () { try { pressOff(); } catch (e) { /* 見た目だけ */ } }, true);
+    doc.addEventListener('gesturestart', function (ev) { ev.preventDefault(); }, false);
+  }
+
+  /* ================= 音の ためし（おとなのひと） ================= */
+  function sndStatus() {
+    var c = WH.snd.ctx, k = WH.snd.keep;
+    return 'おと: ' + (c ? (c.state || 'ふめい') : 'なし') + '・むおんの ループ: ' + (k ? (k.paused ? 'とまっている' : 'あり') : 'なし');
+  }
+  function sndTest() {
+    var was = WH.snd.on, okd;
+    WH.snd.on = true; WH.snd.unlock();
+    okd = WH.snd.play('ok');
+    WH.snd.on = was;
+    setText(el('grown-snd-res'), (okd ? 'ならしました（' : 'おとの しくみが つくれません（') + sndStatus() + '）');
+    global.setTimeout(function () { setText(el('grown-snd-res'), (okd ? 'ならしました（' : 'おとの しくみが つくれません（') + sndStatus() + '）'); }, 500);
+  }
+
+  /* ================= 押したときの 受けとり ================= */
+  function init() {
+    var gb = el('grown-btn');
+    el('genre-list').addEventListener('click', function (ev) {
+      var t = ev.target, n = 0;
+      while (t && n < 4) { if (t.getAttribute && t.getAttribute('data-g')) { startRound(t.getAttribute('data-g')); return; } t = t.parentNode; n++; }
+    }, false);
+    on('mode-hitori', function () { S.mode = 'hitori'; WH.saveState(S); renderHome(); });
+    on('mode-sensei', function () { S.mode = 'sensei'; WH.saveState(S); renderHome(); });
+    on('ready-go', beginFromReady);
+    on('ready-back', function () { renderHome(); show('home'); });
+    on('zukan-btn', function () { Z.page = 0; Z.all = false; renderZukan(); show('zukan'); });
+    on('zukan-prev', function () { Z.page--; renderZukan(); });
+    on('zukan-next', function () { Z.page++; renderZukan(); });
+    on('grown-zukan-all', function () { Z.page = 0; Z.all = true; renderZukan(); show('zukan'); });
+    WH.preloadZukan();
+    on('zukan-back', function () { Z.all = false; renderHome(); show('home'); });
+    on('play-back', function () { stopTimer(); WH.snd.hush(); renderHome(); show('home'); });
+    on('next-btn', onNext);
+    on('say-btn', function () { WH.snd.say(WH.questionText(G.qs[G.idx])); });
+    on('sensei-read', senseiRead);
+    on('sensei-again', senseiAgain);
+    on('open-done', function () { var q = G.qs[G.idx]; if (G.done || G.why) { return; } stopTimer(); showWhy(q); });
+    on('why-ok', function () { rateWhy(2); });
+    on('why-help', function () { rateWhy(1); });
+    on('why-no', function () { rateWhy(0); });
+    on('why-said', function () { rateWhy(1); });
+    on('res-again', function () { startRound(G.gid); });
+    on('res-home', function () { renderHome(); show('home'); });
+    el('choices').addEventListener('click', function (ev) {
+      var t = ev.target, n = 0;
+      while (t && n < 5) { if (t.getAttribute && t.getAttribute('data-i') !== null) { onChoice(parseInt(t.getAttribute('data-i'), 10)); return; } t = t.parentNode; n++; }
+    }, false);
+    gb.addEventListener('touchstart', function (ev) { ev.preventDefault(); holdStart(); }, false);
+    gb.addEventListener('touchend', holdEnd, false); gb.addEventListener('touchcancel', holdEnd, false);
+    gb.addEventListener('mousedown', holdStart, false); gb.addEventListener('mouseup', holdEnd, false); gb.addEventListener('mouseleave', holdEnd, false);
+    on('grown-back', function () { renderHome(); show('home'); });
+    on('grown-save', function () {
+      S.name = String(el('grown-name').value || '').slice(0, 8);
+      S.perRound = parseInt(el('grown-per').value, 10) === 8 ? 8 : 5;
+      S.mode = el('grown-mode').value === 'hitori' ? 'hitori' : 'sensei';
+      S.sound = el('grown-snd').value !== 'off'; S.voice = el('grown-voice').value !== 'off';
+      WH.snd.on = S.sound; WH.snd.voice = S.voice;
+      if (!S.sound && WH.snd.keep) { try { WH.snd.keep.pause(); } catch (e) { /* なくても */ } }
+      WH.saveState(S); renderHome(); show('home');
+    });
+    on('reset-1', function () { el('reset-2').style.display = 'inline-block'; });
+    on('reset-2', function () {
+      var keep = { name: S.name, perRound: S.perRound, sound: S.sound, voice: S.voice, mode: S.mode };
+      S = WH.freshState(); S.name = keep.name; S.perRound = keep.perRound; S.sound = keep.sound; S.voice = keep.voice; S.mode = keep.mode;
+      WH.saveState(S); renderGrown(); setText(el('grown-ver'), 'きろくを けしました');
+    });
+    global.addEventListener('resize', function () {
+      if (screen === 'play' && G) { if (WH.hasStem(G.qs[G.idx])) { WH.paintStem(G.qs[G.idx], el('q-stem'), G.hint); } paintChoices(); }
+      if (screen === 'home') { renderHome(); }
+    }, false);
+    WH.snd.on = (S.sound !== false); WH.snd.voice = (S.voice !== false);
+    on('grown-snd-test', sndTest);
+    bindPress();
+    doc.addEventListener('visibilitychange', function () { if (doc.hidden && WH.snd.keep) { try { WH.snd.keep.pause(); } catch (e) { /* つぎの タッチで もどる */ } } }, false);
+    doc.addEventListener('touchend', function () { WH.snd.unlock(); }, false);
+    doc.addEventListener('click', function (ev) { WH.snd.unlock(); if (ev.target && ev.target.tagName === 'BUTTON') { WH.snd.play('tap'); } }, false);
+    tidyUrl();
+    watchCache();
+    renderHome();
+    show('home');
+  }
+  /* 試験用＝画面を 直接 うごかす 入口 */
+  WH.ui = { startRound: startRound, begin: beginFromReady, state: function () { return S; }, round: function () { return G; }, onChoice: onChoice, rateWhy: rateWhy, senseiRead: senseiRead,
+    timer: function () { return TM; }, setTimer: function (on) { TM.on = !!on; if (!on) { stopTimer(); el('tbar').style.display = 'none'; } }, timeout: onTimeout, screen: function () { return screen; },
+    setMode: function (m) { S.mode = m; }, selfTest: uiSelfTest };
+
+  /* ================= 自己点検（画面の 部品・tools/test.html が 無音の複製の 中で よぶ） ================= */
+  function fire(n, type) { var ev = doc.createEvent('Event'); ev.initEvent(type, true, true); n.dispatchEvent(ev); }
+  function uiSelfTest() {
+    var pass = 0, fail = 0, lines = [], i, n, all, targets = [], skipped = [], bad = [], nBtn = 0, nCard = 0, scr0, idx0, dur, band, raw, t1, t2, shown0, q, wrong, k, keysOk, at, planned, nodes;
+    function ok(cond, label) { if (cond) { pass++; } else { fail++; lines.push('FAIL ' + label); } }
+    function wrongIdx(qq) { var w = []; for (k = 0; k < qq.choices.length; k++) { if (k !== qq.answerIndex) { w.push(k); } } return w; }
+    TM.on = false; stopTimer();
+    WH.seed(11);
+    /* K26 押した 手ごたえ＝子どもが 押す ボタン ぜんぶ＋えらぶ カード */
+    S.mode = 'hitori'; renderHome(); show('home');
+    S.g.himo.level = 1; startRound('himo');
+    all = doc.getElementsByTagName('button');
+    for (i = 0; i < all.length; i++) { if (pressTarget(all[i]) === all[i]) { targets.push(all[i]); nBtn++; } else { skipped.push(all[i].id || all[i].className); } }
+    all = choiceNodes();
+    for (i = 0; i < all.length; i++) { if (pressTarget(all[i]) === all[i]) { targets.push(all[i]); nCard++; } }
+    scr0 = screen; idx0 = G.idx;
+    for (i = 0; i < targets.length; i++) {
+      n = targets[i];
+      fire(n, 'touchstart'); t1 = hasCls(n, 'press');
+      if (i === 0) { dur = String((global.getComputedStyle ? global.getComputedStyle(n, null) : n.style).transitionDuration || ''); }
+      fire(n, 'touchend'); t2 = hasCls(n, 'press');
+      if (!t1 || t2) { bad.push((n.id || n.className) + (t1 ? '' : ' つかない') + (t2 ? ' のこる' : '')); }
+    }
+    ok(targets.length >= 25 && nCard >= 2, 'K26 たいしょうの かず（ボタン ' + nBtn + '・カード ' + nCard + '）');
+    ok(bad.length === 0, 'K26 touchstart で press・touchend で はずれる（だめ ' + bad.length + '）' + bad.join(' '));
+    fire(targets[0], 'touchstart'); fire(targets[0], 'touchcancel'); ok(!hasCls(targets[0], 'press'), 'K26 touchcancel でも はずれる');
+    fire(targets[0], 'touchstart'); fire(el('q-text'), 'click'); ok(!hasCls(targets[0], 'press'), 'K26 click でも はずれる');
+    ok(dur.indexOf('0.05s') === 0, 'K26 おして 0.1びょう いないに かわる（transition ' + dur + '）');
+    ok(pressTarget(el('grown-btn')) === null && pressTarget(el('grown-snd-test')) === null, 'K26 おとなの ながおし・おとなのひと の がめん には つけない');
+    ok(screen === scr0 && G.idx === idx0 && !G.done, 'K26 touch だけでは しょりが はしらない');
+    lines.push('K26 ' + (bad.length === 0 ? 'OK' : 'NG') + ' おした てごたえ ' + targets.length + 'こ（ボタン ' + nBtn + '・カード ' + nCard + '）・つけない ' + skipped.length + 'こ');
+    /* K21 まちがえたときの 型（ひとりで）＝1回目 ヒント・2回目 こたえ。K23＝まちがえた もんだい が 2〜3問 あとに もう いちど */
+    q = G.qs[G.idx]; wrong = wrongIdx(q); planned = G.qs.length;
+    onChoice(wrong[0]);
+    ok(G.tries === 1 && G.hint === true && !G.done && el('next-btn').style.display === 'none' && el('msg').textContent.indexOf('おしい') === 0, 'K21 1かいめ＝ヒント・まだ つぎへ は 出ない');
+    ok(hasCls(choiceNodes()[wrong[0]], 'wrong') && el('msg').textContent.indexOf('✕') < 0, 'K21 ばつ の しるしは つかわない');
+    at = -1; for (i = G.idx + 1; i < G.qs.length; i++) { if (G.qs[i].retest) { at = i; } }
+    ok(G.qs.length === planned + 1 && at >= G.idx + 2 && at <= G.idx + 3 && G.qs[at].g === q.g && G.qs[at].level === q.level, 'K23 まちがえた もんだい が ' + (at - G.idx) + 'もん あとに もう いちど（同じ型・同じレベル）');
+    onChoice(wrong[1]);
+    ok(G.done === true && el('next-btn').style.display !== 'none' && el('msg').textContent.indexOf('こたえは これ') >= 0 && hasCls(choiceNodes()[q.answerIndex], 'right'), 'K21 2かいめ＝こたえと わけ を みせる');
+    ok(G.qs.length === planned + 1, 'K23 もう いちど は 1もんに つき 1かい');
+    lines.push('K21 OK 1かいめ ヒント・2かいめ こたえ（ばつ なし）');
+    lines.push('K23 OK まちがえた もんだい は ' + (at - G.idx) + 'もん あとに もう いちど');
+    /* せんせいと＝よんだら 文が かくれる・こたえの まえに「どうして？」・はなせた が きろくに のこる・open は おはなしだけ */
+    onNext();
+    S.mode = 'sensei'; S.g.nakama.level = 1; startRound('nakama');
+    ok(screen === 'ready', 'せんせいと＝はじめる まえに やくそくの がめん');
+    beginFromReady();
+    q = G.qs[G.idx];
+    ok(el('q-text').style.display === 'none' && el('sensei-box').style.display !== 'none' && el('sensei-text').style.display !== 'none' && el('say-btn').style.display === 'none', 'せんせいと＝もんだい文は おとなの おびだけ・よむ ボタン なし');
+    senseiRead();
+    ok(el('sensei-text').style.display === 'none' && G.read === true, 'せんせいと＝よんだよ で 文が かくれる（1かいで きく）');
+    onChoice(q.answerIndex);
+    ok(G.why === true && el('why-box').style.display !== 'none' && !G.done, 'せんせいと＝せいかいの まえに「どうして？」');
+    rateWhy(1);
+    ok(el('frame-box').style.display !== 'none' && G.why === true, 'てつだって＝いいかたの かたが 出る');
+    rateWhy(1);
+    ok(G.done === true && G.ok === 1 && G.expNow === 1, 'かたを つかって いえた＝1');
+    onNext(); q = G.qs[G.idx]; senseiRead(); onChoice(q.answerIndex); rateWhy(2);
+    ok(G.exp === 1 && G.done === true && el('msg').textContent.indexOf('わけを はなせた') >= 0, 'はなせた＝きろくに のこり みのり ＋1');
+    /* おはなし（こたえの ない もんだい）＝せんせいと だけ */
+    onNext(); startRound('hanashi'); beginFromReady(); q = G.qs[G.idx];
+    ok(q.kind === 'open' && el('open-box').style.display !== 'none' && el('choices').style.display === 'none', 'おはなし＝えらびし なし・はなし おわった ボタン');
+    el('open-done').click(); ok(G.why === true, 'おはなし＝はなし おわった → どうして？ の きろく');
+    rateWhy(2); ok(G.done === true && G.fruits >= 2, 'おはなし＝はなせた で みのり');
+    S.mode = 'hitori'; startRound('hanashi'); q = G.qs[G.idx]; ok(q.kind !== 'open', 'ひとりで＝おはなしの 型でも こたえの ある もんだい に なる');
+    stopTimer(); renderHome(); show('home'); TM.on = true;
+    /* K29 きろくの なまえ */
+    keysOk = WH.STORE_KEY.indexOf('wake_') === 0 && WH.UPD_KEY.indexOf('wake_') === 0;
+    ok(keysOk, 'K29 きろくの なまえが wake_ で はじまる');
+    lines.push('K29 ' + (keysOk ? 'OK' : 'NG') + ' きろくの なまえ ' + WH.STORE_KEY + '・' + WH.UPD_KEY + '（clear は check_all が 0けん を みる）');
+    /* K30 エラーの 帯 */
+    band = el('err-band'); raw = el('err-2');
+    shown0 = band ? band.style.display : 'なし';
+    ok(!!band && shown0 === 'none', 'K30 ふだんは かくれている（' + shown0 + '）');
+    if (band && typeof global.onerror === 'function') {
+      global.onerror('K30 わざと おこした エラー', 'http://x/index.html?v=8', 123, 45);
+      ok(band.style.display === 'block', 'K30 おびが でる');
+      ok(band.textContent.indexOf('ごめんね') >= 0, 'K30 1ぎょうめ ごめんね');
+      ok(raw.textContent.indexOf('K30 わざと おこした エラー') >= 0 && raw.textContent.indexOf('index.html 123:45') >= 0, 'K30 2ぎょうめ なまの エラー＋ぎょう');
+      lines.push('K30 ' + (band.style.display === 'block' ? 'OK' : 'NG') + ' エラーの おび');
+      fire(band, 'click');
+      ok(band.style.display === 'none', 'K30 さわると きえる');
+      band.setAttribute('data-n', '0'); raw.textContent = '';
+    } else { ok(false, 'K30 window.onerror が ない'); }
+    WH.seed(null);
+    return { pass: pass, fail: fail, lines: lines };
+  }
+
+  if (doc.readyState === 'loading') { doc.addEventListener('DOMContentLoaded', init, false); } else { init(); }
+})(window);
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<!-- わけを はなそう ── 制限時間の 検査（CCが使う。tools/check_all.zsh から よぶ・無音の複製で）
+     (1) ひとりで＝問題を出すと ぼうが 出て へっていく  (2) じかんぎれ 1回目＝ヒント＋ぼうが もどる  (3) 2回目＝こたえが 出て「つぎへ」・もう いちど が あとに はさまる
+     (4) 正解すると ぼうが 止まる  (5) せんせいと＝「よんだよ」の あとに ぼうが はじまる  (6) おはなし（こたえの ない もんだい）は 時間なし  (7) 型ごとの 秒数が 15〜60・むずかしい ほど みじかい -->
+<html lang="ja"><head><meta charset="utf-8"><title>timer check</title></head>
+<body style="margin:0">
+<iframe id="f" src="../logs/silent_index.html" style="width:1024px;height:640px;border:0;display:block"></iframe>
+<pre id="out"></pre>
+<script>
+function put(s) { document.getElementById('out').textContent += s + '\n'; }
+document.getElementById('f').onload = function () {
+  var w = this.contentWindow, d = w.document, fails = [], n = 0, tm, r, q, keys, k, lv, at, i;
+  function el(id) { return d.getElementById(id); }
+  function ok(c, label) { n++; if (!c) { fails.push(label); } }
+  try {
+    w.WH.seed(5);
+    keys = ['himo', 'kurabe', 'shiso', 'kazoe', 'wakeru', 'kazuhanashi', 'nakama', 'onajie', 'katachi', 'ana'];
+    for (k = 0; k < keys.length; k++) { for (lv = 1; lv <= 3; lv++) { ok(w.WH.TIME_SEC[keys[k]][lv] >= 15 && w.WH.TIME_SEC[keys[k]][lv] <= 60, '秒数が 15〜60 ' + keys[k] + ' lv' + lv); } ok(w.WH.TIME_SEC[keys[k]][1] > w.WH.TIME_SEC[keys[k]][3], 'むずかしい ほど みじかい ' + keys[k]); }
+    ok(w.WH.TIME_SEC.hanashi[3] === 0 && w.WH.TIME_SEC.himo[3] === 20 && w.WH.TIME_SEC.onajie[3] === 15, 'おはなし＝時間なし・ひも 20・おなじ え 15（練習帳の〈時間〉を 1問あたりに）');
+    /* (1) ひとりで＝ぼうが 出る */
+    w.WH.ui.setMode('hitori'); w.WH.ui.state().g.himo.level = 2;
+    w.WH.ui.startRound('himo');
+    tm = w.WH.ui.timer();
+    ok(el('tbar').style.display === 'block' && tm.total === w.WH.TIME_SEC.himo[2] && tm.timer !== null, 'ぼうが 出て 動いている total=' + tm.total);
+    /* (2) じかんぎれ 1回目 */
+    w.WH.ui.timeout();
+    r = w.WH.ui.round();
+    ok(r.tries === 1 && r.hint === true && !r.done && el('msg').textContent.indexOf('じかんだよ') >= 0 && tm.left === tm.total, '1回目＝ヒント＋ぼうが もどる tries=' + r.tries);
+    ok(el('next-btn').style.display === 'none', '1回目では つぎへ が 出ない');
+    /* (3) 2回目 */
+    w.WH.ui.timeout();
+    ok(r.done === true && el('next-btn').style.display !== 'none' && tm.timer === null, '2回目＝こたえが 出て 止まる');
+    at = -1; for (i = r.idx + 1; i < r.qs.length; i++) { if (r.qs[i].retest) { at = i; } }
+    ok(r.qs.length === r.planned + 1 && at >= r.idx + 2 && at <= r.idx + 3, 'じかんぎれの あとに もう いちど が 2〜3問 あとに はさまる');
+    ok(el('msg').textContent.indexOf('こたえは これ') >= 0, 'こたえの 文');
+    /* (4) 正解で 止まる */
+    el('next-btn').click();
+    q = r.qs[r.idx];
+    ok(tm.timer !== null, 'つぎの 問題で また 動く');
+    w.WH.ui.onChoice(q.answerIndex);
+    ok(tm.timer === null && r.done === true, '正解で 止まる');
+    el('play-back').click();
+    /* (5) せんせいと＝よんだよ の あとで はじまる */
+    w.WH.ui.setMode('sensei'); w.WH.ui.state().g.kazoe.level = 2;
+    w.WH.ui.startRound('kazoe'); w.WH.ui.begin();
+    ok(el('tbar').style.display === 'none' && tm.timer === null, 'せんせいと＝よむ まえは ぼうが 動かない');
+    w.WH.ui.senseiRead();
+    ok(tm.timer !== null && tm.total === w.WH.TIME_SEC.kazoe[2], 'よんだよ の あとに 動く total=' + tm.total);
+    /* じかんぎれ 1回目→ヒント・2回目→こたえ（せんせいと でも）。どうして？ の 途中は 時間が 止まる */
+    w.WH.ui.timeout(); r = w.WH.ui.round();
+    ok(r.tries === 1 && !r.done, 'せんせいと じかんぎれ 1回目＝ヒント');
+    q = r.qs[r.idx]; w.WH.ui.onChoice(q.answerIndex);
+    ok(r.why === true && tm.timer === null, 'どうして？ の あいだは ぼうが 止まる');
+    w.WH.ui.rateWhy(2);
+    ok(r.done === true && r.ok === 1, 'わけの あとに 正解');
+    el('play-back').click();
+    /* (6) おはなし＝時間なし */
+    w.WH.ui.startRound('hanashi'); w.WH.ui.begin(); w.WH.ui.senseiRead();
+    ok(el('tbar').style.display === 'none' && tm.timer === null, 'おはなし は ぼうなし');
+    el('play-back').click();
+    put('TIMER checks=' + n + ' fails=' + fails.length + (fails.length ? ' ' + fails.join(' | ') : ''));
+    put(fails.length === 0 ? 'TIMER=PASS' : 'TIMER=FAIL');
+  } catch (e) { put('TIMER=FAIL 例外 ' + e + (e && e.stack ? e.stack : '')); }
+};
+</script>
+</body></html>

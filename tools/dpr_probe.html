@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<!-- わけを はなそう ── 画面の きめこまかさ（devicePixelRatio）が 2 のときに、おてほんと えらびしの キャンバスの 大きさが 描き直しても 育たないかの 検査（CCが使う） -->
+<html lang="ja"><head><meta charset="utf-8"><title>dpr probe</title></head>
+<body style="margin:0">
+<iframe id="f" src="../logs/silent_index.html" style="width:1024px;height:640px;border:0;display:block"></iframe>
+<pre id="out"></pre>
+<script>
+function put(s) { document.getElementById('out').textContent += s + '\n'; }
+document.getElementById('f').onload = function () {
+  var w = this.contentWindow, d = w.document, cv, a, b, c, fails = [], n = 0, cvs, r, q, sz;
+  function ok(cond, label) { n++; if (!cond) { fails.push(label); } }
+  function size(x) { return x.clientWidth + 'x' + x.clientHeight + ' attr=' + x.width + 'x' + x.height; }
+  try {
+    put('dpr=' + w.devicePixelRatio);
+    w.WH.seed(3); w.WH.ui.setMode('hitori'); w.WH.ui.state().g.ana.level = 2; w.WH.ui.startRound('ana');
+    r = w.WH.ui.round(); q = r.qs[r.idx]; sz = w.WH.stemSize(q);
+    cv = d.getElementById('q-stem');
+    a = size(cv); put('1回目の 描画のあと ' + a);
+    w.WH.paintStem(q, cv, true); b = size(cv); put('ヒントで 描き直したあと ' + b);
+    w.WH.paintStem(q, cv, false); c = size(cv); put('もう一度 描き直したあと ' + c);
+    ok(cv.clientWidth === sz[0] && cv.clientHeight === sz[1], 'おてほんの 見た目の 大きさが ' + sz[0] + 'x' + sz[1] + ' のまま（' + c + '）');
+    ok(cv.width === Math.round(sz[0] * w.devicePixelRatio), '中の 画素数が 幅×dpr（' + cv.width + '）');
+    cvs = d.getElementById('choices').getElementsByTagName('canvas');
+    a = size(cvs[0]); w.WH.paintChoice(q, 0, cvs[0], true, 0); w.WH.paintChoice(q, 0, cvs[0], true, 0); b = size(cvs[0]);
+    ok(a === b && cvs[0].width === Math.round(cvs[0].clientWidth * w.devicePixelRatio), 'えらびしの キャンバスも 育たない（' + a + ' → ' + b + '）');
+    put('DPR checks=' + n + ' fails=' + fails.length + (fails.length ? ' ' + fails.join(' | ') : ''));
+    put(fails.length === 0 ? 'DPR=PASS' : 'DPR=FAIL');
+  } catch (e) { put('DPR=FAIL 例外 ' + e); }
+};
+</script>
+</body></html>

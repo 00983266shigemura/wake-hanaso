@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<!-- わけを はなそう ── iPad よこおき（1024×640）で 1がめんに おさまるかの 検査（CCが使う。tools/check_all.zsh から よぶ）
+     ぜんぶの がめん（はじめ・やくそく・11の型×2つの あそびかた＝もんだい・ヒント・どうして・こたえたあと・けっか・ずかん・おとなのひと）の はみだしを 測る。
+     あわせて 1まわりを 通して 例外が 出ないかを 見る。#shot=〈なまえ〉 で そこで とめて 撮影用に -->
+<html lang="ja"><head><meta charset="utf-8"><title>fit check</title></head>
+<body style="margin:0">
+<!-- 開くのは 無音の複製だけ（tools/mkpage.py が作る）。index.html を直接開かない＝試験で音を鳴らさない -->
+<iframe id="f" src="../logs/silent_index.html" style="width:1024px;height:640px;border:0;display:block"></iframe>
+<pre id="out"></pre>
+<script>
+var sz = location.hash.match(/size=(\d+)x(\d+)/) || [0, 1024, 640];
+var W = +sz[1], H = +sz[2], fails = [], n = 0, maxH = 0, maxTag = '';
+document.getElementById('f').style.width = W + 'px'; document.getElementById('f').style.height = H + 'px';
+var shot = (location.hash.match(/shot=([a-z0-9_]+)/) || [])[1] || '';
+function put(s) { document.getElementById('out').textContent += s + '\n'; }
+document.getElementById('f').onload = function () {
+  var w = this.contentWindow, d = w.document, errs = [], played = 0, expected = 0;
+  w.onerror = function (m) { errs.push(String(m)); };
+  function el(id) { return d.getElementById(id); }
+  function meas(tag) {
+    var de = d.documentElement, h = Math.max(de.scrollHeight, d.body.scrollHeight), wd = Math.max(de.scrollWidth, d.body.scrollWidth);
+    n++;
+    if (h > maxH) { maxH = h; maxTag = tag; }
+    if (h > H || wd > W) { fails.push(tag + ' たて=' + h + ' よこ=' + wd); }
+    return shot === tag;
+  }
+  function stop() { throw 'shot'; }
+  function wrongs(q) { var k, o = []; for (k = 0; k < q.choices.length; k++) { if (q.kind === 'choose' ? k !== q.answerIndex : true) { o.push(k); } } return o; }
+  function answerRight(q) {
+    var i, ans;
+    if (q.kind === 'choose') { w.WH.ui.onChoice(q.answerIndex); return; }
+    if (q.kind === 'order') { for (i = 0; i < q.answerOrder.length; i++) { w.WH.ui.onChoice(q.answerOrder[i]); } return; }
+    ans = q.answerSets[0]; for (i = 0; i < ans.length; i++) { w.WH.ui.onChoice(ans[i]); }
+  }
+  function answerWrong(q) {
+    var i, ws = wrongs(q), used = [];
+    if (q.kind === 'choose') { w.WH.ui.onChoice(ws[0]); return; }
+    if (q.kind === 'order') { ws = q.answerOrder.slice().reverse(); for (i = 0; i < ws.length; i++) { w.WH.ui.onChoice(ws[i]); } return; }
+    /* multi＝正解の 組 以外を need 個 */
+    for (i = 0; i < q.choices.length && used.length < q.need; i++) { if (q.answerSets[0].indexOf(i) < 0 || used.length === q.need - 1 && q.answerSets[0].indexOf(i) >= 0 && used.length > 0) { used.push(i); } }
+    if (used.length < q.need) { used = []; for (i = q.choices.length - 1; i >= 0 && used.length < q.need; i--) { used.push(i); } }
+    for (i = 0; i < used.length; i++) { w.WH.ui.onChoice(used[i]); }
+  }
+  /* mode 0＝1回で正解 1＝1回まちがえて 正解 2＝2回 まちがえる（答えが 出る） */
+  function answerOne(mode, tag, senseiMode) {
+    var r = w.WH.ui.round(), q = r.qs[r.idx];
+    if (senseiMode) { w.WH.ui.senseiRead(); if (meas('read_' + tag)) { stop(); } }
+    if (q.kind === 'open') {
+      el('open-done').click(); if (meas('why_' + tag)) { stop(); }
+      w.WH.ui.rateWhy(1); if (meas('frame_' + tag)) { stop(); }
+      w.WH.ui.rateWhy(1);
+      return;
+    }
+    if (mode >= 1) {
+      answerWrong(q);
+      if (senseiMode && r.why) { if (meas('why_' + tag)) { stop(); } w.WH.ui.rateWhy(mode === 2 ? 0 : 2); }
+      if (meas('hint_' + tag)) { stop(); }
+      if (mode === 2) { answerWrong(q); return; }
+    }
+    answerRight(q);
+    if (senseiMode && r.why) { if (meas('why_' + tag)) { stop(); } w.WH.ui.rateWhy(2); }
+  }
+  function playRound(gid, senseiMode) {
+    var q, r, planned0, qq;
+    w.WH.ui.setMode(senseiMode ? 'sensei' : 'hitori');
+    w.WH.ui.startRound(gid);
+    if (senseiMode) { if (meas('ready')) { stop(); } w.WH.ui.begin(); }
+    planned0 = w.WH.ui.round().planned;
+    for (q = 0; q < 24 && el('scr-result').style.display === 'none'; q++) {
+      r = w.WH.ui.round(); qq = r.qs[r.idx];
+      if (meas('play_' + gid + (senseiMode ? '_s' : '') + '_' + qq.g)) { stop(); }
+      answerOne(q === 1 ? 1 : (q === 3 ? 2 : 0), gid + (senseiMode ? '_s' : ''), senseiMode);
+      played++;
+      if (el('next-btn').style.display === 'none') { errs.push(gid + ' ' + q + ' つぎへ が 出ない（' + qq.g + ' ' + qq.sub + '）'); el('next-btn').style.display = 'inline-block'; }
+      if (meas('ans_' + gid + (senseiMode ? '_s' : ''))) { stop(); }
+      el('next-btn').click();
+    }
+    r = w.WH.ui.round();
+    expected += r.qs.length;
+    if (el('scr-result').style.display === 'none') { errs.push(gid + ' けっかに つかない'); }
+    if (meas('result_' + gid + (senseiMode ? '_s' : ''))) { stop(); }
+    el('res-home').click();
+  }
+  try {
+    w.WH.seed(7);
+    if (!/timer=1/.test(location.hash)) { w.WH.ui.setTimer(false); }
+    w.WH.ui.state().perRound = 5;
+    if (meas('home')) { stop(); }
+    var gids = ['himo', 'kurabe', 'shiso', 'kazoe', 'wakeru', 'kazuhanashi', 'nakama', 'onajie', 'katachi', 'ana', 'mix'], gi, lv;
+    for (lv = 1; lv <= 3; lv++) { for (gi = 0; gi < gids.length; gi++) { if (gids[gi] !== 'mix') { w.WH.ui.state().g[gids[gi]].level = lv; } } for (gi = 0; gi < gids.length; gi++) { if (lv === 2 || gi % 3 === lv % 3) { playRound(gids[gi], false); } } }
+    w.WH.ui.state().g.hanashi.level = 2;
+    for (gi = 0; gi < gids.length; gi++) { playRound(gids[gi], true); }
+    playRound('hanashi', true);
+    if (meas('homeafter')) { stop(); }
+    el('zukan-btn').click();
+    if (meas('zukan')) { stop(); }
+    el('zukan-back').click();
+    var ev = d.createEvent('MouseEvents'); ev.initEvent('mousedown', true, true); el('grown-btn').dispatchEvent(ev);
+    w.setTimeout(function () {
+      meas('grown');
+      put('MEASURED=' + n + ' MAXH=' + maxH + ' at ' + maxTag + ' PLAYED=' + played);
+      put('ERRS=' + errs.length + (errs.length ? ' ' + errs.join(' | ') : ''));
+      var asked = w.__audioAsked, silent = (typeof asked === 'number' && asked > 0 && w.WH.snd.ctx === null);
+      put('AUDIO asked=' + asked + ' ctx=' + (w.WH.snd.ctx === null ? 'なし' : 'あり') + ' → ' + (silent ? '無音' : '無音でない'));
+      put('EXPECTED=' + expected);
+      put(fails.length === 0 && errs.length === 0 && silent && played === expected && played >= 100 ? 'FIT=PASS' : 'FIT=FAIL played=' + played + ' expected=' + expected + ' ' + (silent ? '' : '無音化が効いていない ') + fails.slice(0, 12).join(' / ') + ' ' + errs.slice(0, 6).join(' | '));
+    }, 1500);
+  } catch (e) {
+    if (e === 'shot') { put('SHOT=' + shot); document.getElementById('out').style.display = 'none'; }
+    else { put('FIT=FAIL 例外 ' + e + (e && e.stack ? ' ' + e.stack : '')); }
+  }
+};
+</script>
+</body></html>
