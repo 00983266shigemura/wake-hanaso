@@ -41,22 +41,22 @@
 
   /* はじめの がめん */
   .modes{overflow:hidden; margin:6px 0 2px;}
-  .mbtn{float:left; width:48%; margin:1%; min-height:0; padding:8px 10px; background:var(--card); color:var(--ink); border:3px solid var(--line); font-size:0.83rem; text-align:left; line-height:1.3;}
+  .mbtn{float:left; width:48%; margin:1%; min-height:0; padding:6px 10px; background:var(--card); color:var(--ink); border:3px solid var(--line); font-size:0.83rem; text-align:left; line-height:1.25;}
   .mbtn b{display:block; font-size:0.92rem;}
   .mbtn span{display:block; font-size:0.54rem; color:var(--ink-soft);}
   .mbtn.now{border-color:var(--daidai); background:var(--daidai-bg);}
-  .tree-row{overflow:hidden; background:var(--card); border:2px solid var(--line); border-radius:16px; padding:10px; margin:6px 0;}
-  .tree-row canvas{float:left; width:110px; height:110px; margin-right:12px;}
+  .tree-row{overflow:hidden; background:var(--card); border:2px solid var(--line); border-radius:16px; padding:8px; margin:4px 0;}
+  .tree-row canvas{float:left; width:96px; height:96px; margin-right:12px;}
   .tree-row .tree-text{overflow:hidden;}
   .tree-row .tree-text p{margin:2px 0;}
   .glist{overflow:hidden;}
   .gbtn{float:left; width:48%; margin:1%; padding:7px 12px; text-align:left; min-height:0; font-size:0.83rem; line-height:1.3; background:var(--midori);}
   .gbtn b{display:block; font-size:0.92rem;}
-  .gbtn span{display:block; font-size:0.54rem; opacity:0.92;}
+  .gbtn span{display:block; font-size:0.54rem; opacity:0.92; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .gbtn .rec{opacity:0.8;}
   .g-himo{background:#8a5a2b;} .g-kurabe{background:#d9822b;} .g-shiso{background:#8e5bd1;} .g-kazoe{background:#2a9d8f;} .g-wakeru{background:#2e8b57;}
   .g-kazuhanashi{background:#1f77d0;} .g-nakama{background:#c2567a;} .g-onajie{background:#5a7bd0;} .g-katachi{background:#b8860b;} .g-ana{background:#4b7f8a;} .g-hanashi{background:#d2691e;} .g-mix{background:#e64a4a;}
-  .home-foot{overflow:hidden; margin-top:10px;}
+  .home-foot{overflow:hidden; margin-top:6px;}
   .home-foot button{float:left; margin-right:10px;}
   .home-foot #grown-btn{float:right;}
 
@@ -101,13 +101,17 @@
   .choice img.cimg{display:block; width:100%; max-width:160px; height:auto; margin:0 auto;}
   .choices.six .choice-img{width:30%; max-width:150px;}
   .choices.six .choice img.cimg{max-width:110px;}
-  .choice-wide{width:96%; max-width:420px; margin:0.6% 1%; padding:2px 6px;}
-  .choice-wide .mark{display:inline-block; min-height:0; margin-left:6px; font-size:0.6rem;}
+  .choice-wide{width:96%; max-width:420px; margin:0.6% 1%; padding:2px 6px; border-width:3px;}
+  .choice-wide .mark{display:inline-block; min-height:0; margin-left:6px; font-size:0.6rem; line-height:1.1;}
+  .choice-wide .mark:empty{display:none;}
   .choice-cv{width:46%; max-width:170px; padding:4px;}
+  .choices.five .choice-cv{width:30%; max-width:140px;}
+  .choices.full .choice-cv{width:17%; max-width:130px;}
+  .choices.full .choice-img{width:22%; max-width:170px;}
   .open{text-align:center; margin:6px 0;}
   #open-done{background:var(--daidai);}
-  /* どうして？ */
-  .why{background:var(--card); border:3px solid var(--murasaki); border-radius:16px; padding:8px 12px; margin:6px 0; text-align:center;}
+  /* どうして？＝下から 出る 板（おとなが おす）。した の 文と ぼう に かさなる（その あいだは 見なくてよい） */
+  .why{position:fixed; left:0; right:0; bottom:0; z-index:50; background:var(--card); border-top:4px solid var(--murasaki); padding:6px 12px 8px; text-align:center; box-shadow:0 -4px 14px rgba(0,0,0,0.12);}
   .why .why-ask{font-size:1.08rem; font-weight:bold; color:var(--murasaki); margin:2px 0 6px;}
   .why .wsmall{font-size:0.54rem; color:var(--ink-soft);}
   .why button{min-height:0; padding:9px 14px; font-size:0.75rem; margin:3px;}
@@ -127,13 +131,14 @@
   #next-btn{font-size:1.08rem; padding:12px 40px;}
 
   /* けっか */
-  .res{background:var(--card); border:2px solid var(--line); border-radius:16px; padding:12px; text-align:center;}
-  .res canvas{width:150px; height:150px;}
+  .res{background:var(--card); border:2px solid var(--line); border-radius:16px; padding:8px 12px; text-align:center;}
+  .res canvas{width:120px; height:120px;}
+  .res p{margin:3px 0;}
   .res.born canvas{width:200px; height:200px; -webkit-animation:born 0.9s ease-out 2; animation:born 0.9s ease-out 2;}
   .res.born #res-events{font-size:1.08rem; font-weight:bold; color:var(--ao);}
   @-webkit-keyframes born{0%{-webkit-transform:scale(0.6) rotate(-8deg);}50%{-webkit-transform:scale(1.12) rotate(6deg);}100%{-webkit-transform:scale(1) rotate(0);}}
   @keyframes born{0%{transform:scale(0.6) rotate(-8deg);}50%{transform:scale(1.12) rotate(6deg);}100%{transform:scale(1) rotate(0);}}
-  .stars{font-size:1.42rem; letter-spacing:4px; color:var(--daidai);}
+  .stars{font-size:1.2rem; letter-spacing:4px; color:var(--daidai); line-height:1.3;}
   .res button{margin:6px 6px;}
   .bridge{font-size:0.67rem; color:var(--ink-soft); background:var(--daidai-bg); border-radius:10px; padding:4px 10px; display:inline-block; max-width:620px; line-height:1.4;}
 
@@ -172,12 +177,12 @@
     #scr-play .sensei{clear:both; margin:2px 0;}
     #scr-play .qbox{float:left; width:50%; margin:4px 0 0; padding:6px;}
     #scr-play .choices{float:right; width:48%; margin-top:0;}
+    #scr-play .choices.full{float:none; clear:both; width:100%; margin-top:4px;}
     #scr-play .open{float:right; width:48%;}
-    #scr-play .why{float:right; clear:right; width:48%; margin:4px 0;}
     #scr-play .msg{float:left; clear:left; width:50%; margin:4px 0 2px;}
     #scr-play .playfoot{float:left; clear:left; width:50%;}
     #scr-play .tbar{float:left; clear:left; width:50%; margin-top:4px;}
-    .gbtn{width:31.3%; margin:0.8%; padding:5px 10px;}
+    .gbtn{width:31.3%; margin:0.6%; padding:4px 10px; line-height:1.2;}
     .gbtn span{font-size:0.5rem;}
     .choice{margin:1% 1.5%; max-width:200px;}
     .choice-cv{max-width:160px;}
@@ -192,7 +197,11 @@
     #scr-zukan .head{padding-bottom:0;}
     .grown-l{float:left; width:48%;}
     .grown-r{float:right; width:48%;}
-    .grown{padding:6px 12px; font-size:0.54rem; line-height:1.3;}
+    .grown{padding:4px 12px; font-size:0.5rem; line-height:1.25;}
+    .grown label{margin-top:1px;}
+    .grown table{font-size:0.46rem; line-height:1.1;}
+    .grown ul li{line-height:1.25;}
+    .grown input,.grown select{font-size:0.58rem; padding:2px 4px;}
     .grown table{font-size:0.5rem; line-height:1.15; margin:3px 0;}
     .grown th,.grown td{padding:1px 4px;}
     .grown p,.grown ul{margin:2px 0;}
@@ -312,24 +321,20 @@
     <label>あそびかた <select id="grown-mode"><option value="sensei">せんせいと（大人が読む・1対1）</option><option value="hitori">ひとりで（子がタップ）</option></select></label>
     <label>おと <select id="grown-snd"><option value="on">あり</option><option value="off">なし</option></select></label>
     <label>問題の読み上げ（ひとりで のとき） <select id="grown-voice"><option value="on">あり</option><option value="off">なし</option></select></label>
-    <p class="note">おとが 出ないときは、iPad の 音量と 消音（ミュート）を 確かめてください（横の消音スイッチ・コントロールセンターのベルの印）。</p>
-    <p><button id="grown-snd-test" class="small">音のためし</button> <span id="grown-snd-res" class="note"></span></p>
+    <p><button id="grown-snd-test" class="small">音のためし</button> <span id="grown-snd-res" class="note">出ないときは iPad の音量と消音（横のスイッチ・コントロールセンターのベル）を確認</span></p>
     <p><button id="grown-save" class="small">ほぞんして もどる</button> <button id="grown-zukan-all" class="sub small">ずかんの絵を全部見る（親用）</button></p>
     <table id="grown-table"></table>
-    <p class="note">「わけ」＝せんせいと で「はなせた」を押した数。</p>
   </div><div class="grown-r">
     <h3>せんせいと（1対1の口頭試問の形）の進め方</h3>
     <ul>
-      <li>子は立って、iPadは大人が持つ。問題文は大人が1回だけ読む（読んだら「よんだよ」で文が隠れる）</li>
-      <li>子が指さし・声で答えたら、大人がその選択肢をタップ。すぐ正解は出ず「どうして そう おもったの？」が出る</li>
-      <li>合っていても理由を言わせる。言えたら「はなせた」。詰まったら「てつだって」＝言い方の型を見せて真似させる</li>
-      <li>そのあと正解・不正解。1回目の間違いはヒントともう一度、2回目は解き方つきの答え。✕・減点はなし</li>
-      <li>「おはなし」は正解のない問題（話を作る・質問に答える）。「はなし おわった」→理由の記録だけ</li>
+      <li>子は立つ。iPadは大人が持ち、問題文を1回だけ読む（「よんだよ」で文が隠れる）</li>
+      <li>子が指さし・声で答えたら大人がタップ。先に「どうして そう おもったの？」が出る＝合っていても理由を言わせる</li>
+      <li>言えたら「はなせた」。詰まったら「てつだって」＝言い方の型を見せて真似させる。そのあと正解・不正解</li>
+      <li>1回目の間違いはヒントともう一度、2回目は解き方つきの答え。✕・減点なし。「おはなし」は正解のない問題＝理由の記録だけ</li>
     </ul>
-    <h3>言い方の型（口頭試問で評価される「過程の説明」）</h3>
+    <h3>言い方の型（評価されるのは答えに至る過程の説明）</h3>
     <ul>
-      <li>「ほかのは みんな ○○ だけど、これだけ △△ だから です」（仲間はずれ）</li>
-      <li>「じゅんばんに かぞえたら ○こ でした」「のこりが いちばん すくない から」</li>
+      <li>「ほかのは みんな ○○ だけど、これだけ △△ だから です」「じゅんばんに かぞえたら ○こ でした」</li>
       <li>最後は「〜です」で言い切る。大人は「どこを見た？」「つぎは？」と手順を聞く</li>
     </ul>
     <p><button id="reset-1" class="sub small">きろくを ぜんぶ けす</button> <button id="reset-2" class="small" style="display:none">ほんとうに けす</button></p>
@@ -947,7 +952,7 @@
       D.line(c.ctx, w * 0.6, top - 10, w * 0.44, h * 0.84, '#ffffff', 6); D.line(c.ctx, w * 0.6, top - 10, w * 0.44, h * 0.84, COL.ao, 3);
       if (hint) { D.text(c.ctx, 'のこり', w / 2, h * 0.97 - 8, 12, COL.daidai); }
     } else if (q.sub === 'pile') {
-      r = h * 0.22 + h * 0.3 * v;
+      r = h * 0.1 + h * 0.5 * v;
       D.ellipse(c.ctx, w / 2, h * 0.78, w * 0.4, h * 0.1, COL.shiro, COL.sumi, 2.5);
       c.ctx.save(); c.ctx.beginPath(); c.ctx.rect(0, 0, w, h * 0.78); c.ctx.clip();
       D.ellipse(c.ctx, w / 2, h * 0.78, w * 0.36, r, '#c9b27a', COL.sumi, 2);
@@ -1339,6 +1344,20 @@
     }
     return false;
   }
+  function pairFills(a, b, target) {
+    var na = normCells(a), tk = {}, i, dr, dc, moved, ok, key, ex = extent(target);
+    for (i = 0; i < target.length; i++) { tk[cellKey(target[i][0], target[i][1])] = true; }
+    if (a.length + b.length !== target.length) { return false; }
+    for (dr = 0; dr < ex[0]; dr++) {
+      for (dc = 0; dc < ex[1]; dc++) {
+        moved = []; ok = true;
+        for (i = 0; i < na.length; i++) { key = cellKey(na[i][0] + dr, na[i][1] + dc); if (!tk[key]) { ok = false; break; } moved.push([na[i][0] + dr, na[i][1] + dc]); }
+        if (!ok) { continue; }
+        if (placedUnionIsTarget(moved, b, target)) { return true; }
+      }
+    }
+    return false;
+  }
   function randomPoly(n) {
     var cells = [[0, 0]], tries, c, d, DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]], nb, seen = { '0,0': true };
     for (tries = 0; tries < 200 && cells.length < n; tries++) { c = pick(cells); d = pick(DIRS); nb = [c[0] + d[0], c[1] + d[1]]; if (seen[cellKey(nb[0], nb[1])]) { continue; } seen[cellKey(nb[0], nb[1])] = true; cells.push(nb); }
@@ -1361,13 +1380,14 @@
         target = level === 1 ? rectCells(2, 2) : (level === 2 ? rectCells(2, 3) : pick([rectCells(3, 3), rectCells(2, 4), [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [2, 1]]]));
         parts = splitCells(target, 2); if (!parts) { continue; }
         if (level >= 2 && (parts[0].length < 2 || parts[1].length < 2)) { continue; }
+        if (cellSig(parts[0]) === cellSig(parts[1])) { continue; }
         pieces = [parts[0], parts[1]]; wrongs = [];
         for (i = 0; i < 60 && wrongs.length < 2; i++) {
           w = randomPoly(pieces[wrongs.length % 2].length + (rnd() < 0.5 ? 0 : (rnd() < 0.5 ? 1 : -1)));
           if (w.length < 1) { continue; }
           ok = true;
-          for (j = 0; j < pieces.length; j++) { if (cellSig(w) === cellSig(pieces[j]) || placedUnionIsTarget(pieces[j], w, target)) { ok = false; } }
-          for (j = 0; j < wrongs.length; j++) { if (cellSig(w) === cellSig(wrongs[j]) || placedUnionIsTarget(normCells(wrongs[j]), w, target)) { ok = false; } }
+          for (j = 0; j < pieces.length; j++) { if (cellSig(w) === cellSig(pieces[j]) || pairFills(pieces[j], w, target)) { ok = false; } }
+          for (j = 0; j < wrongs.length; j++) { if (cellSig(w) === cellSig(wrongs[j]) || pairFills(wrongs[j], w, target)) { ok = false; } }
           if (ok) { wrongs.push(w); }
         }
         if (wrongs.length < 2) { continue; }
@@ -1383,6 +1403,7 @@
       for (tries = 0; tries < 100; tries++) {
         target = level === 2 ? rectCells(2, 3) : pick([rectCells(3, 3), rectCells(2, 4)]);
         parts = splitCells(target, 3); if (!parts) { continue; }
+        if (cellSig(parts[0]) === cellSig(parts[1]) || cellSig(parts[0]) === cellSig(parts[2]) || cellSig(parts[1]) === cellSig(parts[2])) { continue; }
         w = null;
         for (i = 0; i < 60 && !w; i++) {
           cells = randomPoly(parts[ri(3)].length);
@@ -1753,7 +1774,7 @@
     else if (q.g === 'katachi') { paintKatachiChoice(canvas, q, i, hint); }
     else if (q.g === 'ana') { paintAnaChoice(canvas, q, i); }
   };
-  WH.cells = { sig: cellSig, congruent: congruent, connected: connected, union: unionCells, placedUnion: placedUnionIsTarget, norm: normCells };
+  WH.cells = { sig: cellSig, congruent: congruent, connected: connected, union: unionCells, placedUnion: placedUnionIsTarget, pairFills: pairFills, norm: normCells };
   WH.anaLines = anaLines; WH.anaSig = anaSig; WH.figSig = figSig; WH.groupsOf = groupsOf; WH.SHITSUMON = SHITSUMON; WH.WAKE_PAT = WAKE_PAT;
 
   /* ================= 自己点検（計算の ぶぶん・tools/test.html から よぶ） ================= */
@@ -1784,9 +1805,9 @@
             if (q.g === 'katachi') {
               /* 正しい 2つ だけが target を うめる（ほかの どの 2つも うめない） */
               cnt = 0;
-              for (j = 0; j < 4; j++) { for (k = j + 1; k < 4; k++) { if (placedUnionIsTarget(normCells(q.choices[j]), q.choices[k], normCells(q.target)) || placedUnionIsTarget(normCells(q.choices[k]), q.choices[j], normCells(q.target))) { cnt++; } } }
+              for (j = 0; j < 4; j++) { for (k = j + 1; k < 4; k++) { if (pairFills(q.choices[j], q.choices[k], normCells(q.target))) { cnt++; } } }
               ok(cnt === 1, 'T2 katachi awase target を うめる 組は 1つ（' + cnt + '）');
-              ok(placedUnionIsTarget(normCells(q.choices[q.answerSet[0]]), q.choices[q.answerSet[1]], normCells(q.target)) || placedUnionIsTarget(normCells(q.choices[q.answerSet[1]]), q.choices[q.answerSet[0]], normCells(q.target)), 'T2 katachi awase こたえの 2つで うまる');
+              ok(pairFills(q.choices[q.answerSet[0]], q.choices[q.answerSet[1]], normCells(q.target)), 'T2 katachi awase こたえの 2つで うまる');
             }
             if (q.g === 'nakama') {
               for (j = 0; j < 3; j++) { for (k = 0; k < 3; k++) { ok(!sharesGroup(itemById(q.choices[q.setA[j]]), itemById(q.choices[q.setB[k]])), 'T2 nakama wakeru2 2つの なかまが まざらない'); } }
@@ -2004,7 +2025,7 @@
     G.tries++; G.streak = 0; G.wrongOnce = true;
     if (G.tries === 1) {
       WH.snd.play('oshii');
-      giveHint(q, -1);
+      giveHint(q, -1); ensureRetest(q);
       setText(el('msg'), 'じかんだよ！ ' + WH.hintText(q) + ' もう いちど');
       el('msg').className = 'msg warn';
       startTimer(WH.timeFor(q));
@@ -2040,10 +2061,11 @@
     } else if (q.g === 'hanashi' && q.pics) {
       stem.style.display = 'none'; el('q-stem-html').style.display = 'block'; s = ''; for (i = 0; i < q.pics.length; i++) { s += imgTag(q.pics[i], q.pics.length === 3 ? 'midimg' : 'bigimg'); } el('q-stem-html').innerHTML = s; showEl('q-box', true);
     } else if (q.g === 'hanashi') {
-      stem.style.display = 'none'; el('q-stem-html').style.display = 'block'; el('q-stem-html').innerHTML = '<div class="bigq">' + (sensei() ? '' : WH.questionText(q)) + '</div>'; showEl('q-box', true);
+      stem.style.display = 'none'; el('q-stem-html').style.display = 'block'; el('q-stem-html').innerHTML = '<div class="bigq">' + (sensei() ? '' : WH.questionText(q)) + '</div>'; showEl('q-box', !sensei());
     } else { showEl('q-box', !sensei()); stem.style.display = 'none'; el('q-stem-html').style.display = 'none'; }
     /* えらびし */
-    box.innerHTML = ''; box.className = 'choices' + (q.cType === 'wide' ? ' wide' : '') + (q.g === 'nakama' && q.kind === 'multi' ? ' six' : '');
+    box.innerHTML = ''; box.className = 'choices' + (q.cType === 'wide' ? ' wide' : '') + (q.g === 'nakama' && q.kind === 'multi' ? ' six' : '') + (el('q-box').style.display === 'none' ? ' full' : '') + (q.kind !== 'open' && q.choices.length >= 5 ? ' five' : '');
+    if (q.kind !== 'open' && q.choices.length >= 5 && q.cType !== 'wide') { cs = [Math.round(cs[0] * 0.85), Math.round(cs[1] * 0.85)]; }
     showEl('open-box', q.kind === 'open');
     box.style.display = q.kind === 'open' ? 'none' : '';
     if (q.kind !== 'open') {
@@ -2132,11 +2154,10 @@
     else { clearPicks(); }
     if (G.tries === 1) {
       WH.snd.play('oshii');
-      giveHint(q, wrongIdx);
+      giveHint(q, wrongIdx); ensureRetest(q);
       setText(el('msg'), 'おしい！ ' + WH.hintText(q) + (q.kind === 'choose' ? '' : ' もう いちど えらんでね'));
       el('msg').className = 'msg warn';
-      if (sensei()) { startTimer(WH.timeFor(q)); }
-      else { startTimer(WH.timeFor(q)); }
+      startTimer(WH.timeFor(q));
     } else {
       revealAnswer(q, '');
     }
@@ -2156,7 +2177,8 @@
     if (q.kind === 'choose') { addCls(nodes[q.answerIndex], 'right'); setText(nodes[q.answerIndex].getElementsByClassName('mark')[0], '✓ こたえ'); }
     else if (q.kind === 'order') { for (i = 0; i < q.answerOrder.length; i++) { addCls(nodes[q.answerOrder[i]], 'right'); setText(nodes[q.answerOrder[i]].getElementsByClassName('mark')[0], String(i + 1)); } }
     else { for (k = 0; k < q.answerSets[0].length; k++) { addCls(nodes[q.answerSets[0][k]], 'right'); setText(nodes[q.answerSets[0][k]].getElementsByClassName('mark')[0], '○'); } }
-    setText(el('msg'), head + 'こたえは これ。' + WH.whyText(q) + planRetest(q));
+    ensureRetest(q);
+    setText(el('msg'), head + 'こたえは これ。' + WH.whyText(q) + retestNote());
     el('msg').className = 'msg warn';
     el('next-btn').style.display = 'inline-block';
     afterQuestion(q, false);
@@ -2168,7 +2190,7 @@
     if (G.streak >= 3) { fr += 1; bonus = '（3もん れんぞく！ ＋1）'; WH.snd.play('combo'); } else { WH.snd.play(G.tries === 0 ? 'ok' : 'ok2'); }
     if (G.expNow === 2) { fr += 1; bonus += '（わけを はなせた ＋1）'; }
     G.fruits += fr;
-    setText(el('msg'), 'せいかい！ ' + (G.tries === 0 ? WH.praise() + '。' : 'なおせたね。') + 'みのり ' + fr + 'こ ' + bonus + (G.wrongOnce ? planRetest(q) : ''));
+    setText(el('msg'), 'せいかい！ ' + (G.tries === 0 ? WH.praise() + '。' : 'なおせたね。') + 'みのり ' + fr + 'こ ' + bonus + retestNote());
     el('msg').className = 'msg good';
     el('next-btn').style.display = 'inline-block';
     afterQuestion(q, true);
@@ -2177,16 +2199,16 @@
     /* ひとりで＝おうちの ひとへの はし（K25） */
     if (!sensei() && right && G.tries === 0) { setText(el('msg'), el('msg').textContent + ' おうちの ひとに「どうして そう おもった？」を はなして みよう'); }
   }
-  /* まちがえた もんだい は 2〜4問 あとに もう いちど（同じ型・同じレベル・1問に つき 1回） */
-  function planRetest(q) {
+  /* まちがえた もんだい は 2〜3問 あとに もう いちど（K23・同じ型・同じレベル・1問に つき 1回）。1回目の まちがい（じかんぎれ も）で 予定する */
+  function ensureRetest(q) {
     var nq, at;
-    if (q.retest || G.planRetested === G.idx) { return ''; }
+    if (q.retest || G.planRetested === G.idx) { return; }
     G.planRetested = G.idx;
     nq = WH.makeFor(q.g, q.level, S.mode); nq.retest = true;
     at = Math.min(G.qs.length, G.idx + 2 + WH.ri(2));
     G.qs.splice(at, 0, nq);
-    return ' あとで もう いちど おなじ もんだいが でるよ。';
   }
+  function retestNote() { return (G.planRetested === G.idx) ? ' あとで もう いちど おなじ もんだいが でるよ。' : ''; }
 
   /* ================= どうして？（せんせいと＝わけを はなす） ================= */
   function showWhy(q) {

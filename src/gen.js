@@ -75,7 +75,7 @@
       D.line(c.ctx, w * 0.6, top - 10, w * 0.44, h * 0.84, '#ffffff', 6); D.line(c.ctx, w * 0.6, top - 10, w * 0.44, h * 0.84, COL.ao, 3);
       if (hint) { D.text(c.ctx, 'のこり', w / 2, h * 0.97 - 8, 12, COL.daidai); }
     } else if (q.sub === 'pile') {
-      r = h * 0.22 + h * 0.3 * v;
+      r = h * 0.1 + h * 0.5 * v;
       D.ellipse(c.ctx, w / 2, h * 0.78, w * 0.4, h * 0.1, COL.shiro, COL.sumi, 2.5);
       c.ctx.save(); c.ctx.beginPath(); c.ctx.rect(0, 0, w, h * 0.78); c.ctx.clip();
       D.ellipse(c.ctx, w / 2, h * 0.78, w * 0.36, r, '#c9b27a', COL.sumi, 2);
@@ -467,6 +467,20 @@
     }
     return false;
   }
+  function pairFills(a, b, target) {
+    var na = normCells(a), tk = {}, i, dr, dc, moved, ok, key, ex = extent(target);
+    for (i = 0; i < target.length; i++) { tk[cellKey(target[i][0], target[i][1])] = true; }
+    if (a.length + b.length !== target.length) { return false; }
+    for (dr = 0; dr < ex[0]; dr++) {
+      for (dc = 0; dc < ex[1]; dc++) {
+        moved = []; ok = true;
+        for (i = 0; i < na.length; i++) { key = cellKey(na[i][0] + dr, na[i][1] + dc); if (!tk[key]) { ok = false; break; } moved.push([na[i][0] + dr, na[i][1] + dc]); }
+        if (!ok) { continue; }
+        if (placedUnionIsTarget(moved, b, target)) { return true; }
+      }
+    }
+    return false;
+  }
   function randomPoly(n) {
     var cells = [[0, 0]], tries, c, d, DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]], nb, seen = { '0,0': true };
     for (tries = 0; tries < 200 && cells.length < n; tries++) { c = pick(cells); d = pick(DIRS); nb = [c[0] + d[0], c[1] + d[1]]; if (seen[cellKey(nb[0], nb[1])]) { continue; } seen[cellKey(nb[0], nb[1])] = true; cells.push(nb); }
@@ -489,13 +503,14 @@
         target = level === 1 ? rectCells(2, 2) : (level === 2 ? rectCells(2, 3) : pick([rectCells(3, 3), rectCells(2, 4), [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [2, 1]]]));
         parts = splitCells(target, 2); if (!parts) { continue; }
         if (level >= 2 && (parts[0].length < 2 || parts[1].length < 2)) { continue; }
+        if (cellSig(parts[0]) === cellSig(parts[1])) { continue; }
         pieces = [parts[0], parts[1]]; wrongs = [];
         for (i = 0; i < 60 && wrongs.length < 2; i++) {
           w = randomPoly(pieces[wrongs.length % 2].length + (rnd() < 0.5 ? 0 : (rnd() < 0.5 ? 1 : -1)));
           if (w.length < 1) { continue; }
           ok = true;
-          for (j = 0; j < pieces.length; j++) { if (cellSig(w) === cellSig(pieces[j]) || placedUnionIsTarget(pieces[j], w, target)) { ok = false; } }
-          for (j = 0; j < wrongs.length; j++) { if (cellSig(w) === cellSig(wrongs[j]) || placedUnionIsTarget(normCells(wrongs[j]), w, target)) { ok = false; } }
+          for (j = 0; j < pieces.length; j++) { if (cellSig(w) === cellSig(pieces[j]) || pairFills(pieces[j], w, target)) { ok = false; } }
+          for (j = 0; j < wrongs.length; j++) { if (cellSig(w) === cellSig(wrongs[j]) || pairFills(wrongs[j], w, target)) { ok = false; } }
           if (ok) { wrongs.push(w); }
         }
         if (wrongs.length < 2) { continue; }
@@ -511,6 +526,7 @@
       for (tries = 0; tries < 100; tries++) {
         target = level === 2 ? rectCells(2, 3) : pick([rectCells(3, 3), rectCells(2, 4)]);
         parts = splitCells(target, 3); if (!parts) { continue; }
+        if (cellSig(parts[0]) === cellSig(parts[1]) || cellSig(parts[0]) === cellSig(parts[2]) || cellSig(parts[1]) === cellSig(parts[2])) { continue; }
         w = null;
         for (i = 0; i < 60 && !w; i++) {
           cells = randomPoly(parts[ri(3)].length);
@@ -881,7 +897,7 @@
     else if (q.g === 'katachi') { paintKatachiChoice(canvas, q, i, hint); }
     else if (q.g === 'ana') { paintAnaChoice(canvas, q, i); }
   };
-  WH.cells = { sig: cellSig, congruent: congruent, connected: connected, union: unionCells, placedUnion: placedUnionIsTarget, norm: normCells };
+  WH.cells = { sig: cellSig, congruent: congruent, connected: connected, union: unionCells, placedUnion: placedUnionIsTarget, pairFills: pairFills, norm: normCells };
   WH.anaLines = anaLines; WH.anaSig = anaSig; WH.figSig = figSig; WH.groupsOf = groupsOf; WH.SHITSUMON = SHITSUMON; WH.WAKE_PAT = WAKE_PAT;
 
   /* ================= 自己点検（計算の ぶぶん・tools/test.html から よぶ） ================= */
@@ -912,9 +928,9 @@
             if (q.g === 'katachi') {
               /* 正しい 2つ だけが target を うめる（ほかの どの 2つも うめない） */
               cnt = 0;
-              for (j = 0; j < 4; j++) { for (k = j + 1; k < 4; k++) { if (placedUnionIsTarget(normCells(q.choices[j]), q.choices[k], normCells(q.target)) || placedUnionIsTarget(normCells(q.choices[k]), q.choices[j], normCells(q.target))) { cnt++; } } }
+              for (j = 0; j < 4; j++) { for (k = j + 1; k < 4; k++) { if (pairFills(q.choices[j], q.choices[k], normCells(q.target))) { cnt++; } } }
               ok(cnt === 1, 'T2 katachi awase target を うめる 組は 1つ（' + cnt + '）');
-              ok(placedUnionIsTarget(normCells(q.choices[q.answerSet[0]]), q.choices[q.answerSet[1]], normCells(q.target)) || placedUnionIsTarget(normCells(q.choices[q.answerSet[1]]), q.choices[q.answerSet[0]], normCells(q.target)), 'T2 katachi awase こたえの 2つで うまる');
+              ok(pairFills(q.choices[q.answerSet[0]], q.choices[q.answerSet[1]], normCells(q.target)), 'T2 katachi awase こたえの 2つで うまる');
             }
             if (q.g === 'nakama') {
               for (j = 0; j < 3; j++) { for (k = 0; k < 3; k++) { ok(!sharesGroup(itemById(q.choices[q.setA[j]]), itemById(q.choices[q.setB[k]])), 'T2 nakama wakeru2 2つの なかまが まざらない'); } }

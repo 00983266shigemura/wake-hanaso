@@ -105,7 +105,7 @@
     G.tries++; G.streak = 0; G.wrongOnce = true;
     if (G.tries === 1) {
       WH.snd.play('oshii');
-      giveHint(q, -1);
+      giveHint(q, -1); ensureRetest(q);
       setText(el('msg'), 'じかんだよ！ ' + WH.hintText(q) + ' もう いちど');
       el('msg').className = 'msg warn';
       startTimer(WH.timeFor(q));
@@ -141,10 +141,11 @@
     } else if (q.g === 'hanashi' && q.pics) {
       stem.style.display = 'none'; el('q-stem-html').style.display = 'block'; s = ''; for (i = 0; i < q.pics.length; i++) { s += imgTag(q.pics[i], q.pics.length === 3 ? 'midimg' : 'bigimg'); } el('q-stem-html').innerHTML = s; showEl('q-box', true);
     } else if (q.g === 'hanashi') {
-      stem.style.display = 'none'; el('q-stem-html').style.display = 'block'; el('q-stem-html').innerHTML = '<div class="bigq">' + (sensei() ? '' : WH.questionText(q)) + '</div>'; showEl('q-box', true);
+      stem.style.display = 'none'; el('q-stem-html').style.display = 'block'; el('q-stem-html').innerHTML = '<div class="bigq">' + (sensei() ? '' : WH.questionText(q)) + '</div>'; showEl('q-box', !sensei());
     } else { showEl('q-box', !sensei()); stem.style.display = 'none'; el('q-stem-html').style.display = 'none'; }
     /* えらびし */
-    box.innerHTML = ''; box.className = 'choices' + (q.cType === 'wide' ? ' wide' : '') + (q.g === 'nakama' && q.kind === 'multi' ? ' six' : '');
+    box.innerHTML = ''; box.className = 'choices' + (q.cType === 'wide' ? ' wide' : '') + (q.g === 'nakama' && q.kind === 'multi' ? ' six' : '') + (el('q-box').style.display === 'none' ? ' full' : '') + (q.kind !== 'open' && q.choices.length >= 5 ? ' five' : '');
+    if (q.kind !== 'open' && q.choices.length >= 5 && q.cType !== 'wide') { cs = [Math.round(cs[0] * 0.85), Math.round(cs[1] * 0.85)]; }
     showEl('open-box', q.kind === 'open');
     box.style.display = q.kind === 'open' ? 'none' : '';
     if (q.kind !== 'open') {
@@ -233,11 +234,10 @@
     else { clearPicks(); }
     if (G.tries === 1) {
       WH.snd.play('oshii');
-      giveHint(q, wrongIdx);
+      giveHint(q, wrongIdx); ensureRetest(q);
       setText(el('msg'), 'おしい！ ' + WH.hintText(q) + (q.kind === 'choose' ? '' : ' もう いちど えらんでね'));
       el('msg').className = 'msg warn';
-      if (sensei()) { startTimer(WH.timeFor(q)); }
-      else { startTimer(WH.timeFor(q)); }
+      startTimer(WH.timeFor(q));
     } else {
       revealAnswer(q, '');
     }
@@ -257,7 +257,8 @@
     if (q.kind === 'choose') { addCls(nodes[q.answerIndex], 'right'); setText(nodes[q.answerIndex].getElementsByClassName('mark')[0], '✓ こたえ'); }
     else if (q.kind === 'order') { for (i = 0; i < q.answerOrder.length; i++) { addCls(nodes[q.answerOrder[i]], 'right'); setText(nodes[q.answerOrder[i]].getElementsByClassName('mark')[0], String(i + 1)); } }
     else { for (k = 0; k < q.answerSets[0].length; k++) { addCls(nodes[q.answerSets[0][k]], 'right'); setText(nodes[q.answerSets[0][k]].getElementsByClassName('mark')[0], '○'); } }
-    setText(el('msg'), head + 'こたえは これ。' + WH.whyText(q) + planRetest(q));
+    ensureRetest(q);
+    setText(el('msg'), head + 'こたえは これ。' + WH.whyText(q) + retestNote());
     el('msg').className = 'msg warn';
     el('next-btn').style.display = 'inline-block';
     afterQuestion(q, false);
@@ -269,7 +270,7 @@
     if (G.streak >= 3) { fr += 1; bonus = '（3もん れんぞく！ ＋1）'; WH.snd.play('combo'); } else { WH.snd.play(G.tries === 0 ? 'ok' : 'ok2'); }
     if (G.expNow === 2) { fr += 1; bonus += '（わけを はなせた ＋1）'; }
     G.fruits += fr;
-    setText(el('msg'), 'せいかい！ ' + (G.tries === 0 ? WH.praise() + '。' : 'なおせたね。') + 'みのり ' + fr + 'こ ' + bonus + (G.wrongOnce ? planRetest(q) : ''));
+    setText(el('msg'), 'せいかい！ ' + (G.tries === 0 ? WH.praise() + '。' : 'なおせたね。') + 'みのり ' + fr + 'こ ' + bonus + retestNote());
     el('msg').className = 'msg good';
     el('next-btn').style.display = 'inline-block';
     afterQuestion(q, true);
@@ -278,16 +279,16 @@
     /* ひとりで＝おうちの ひとへの はし（K25） */
     if (!sensei() && right && G.tries === 0) { setText(el('msg'), el('msg').textContent + ' おうちの ひとに「どうして そう おもった？」を はなして みよう'); }
   }
-  /* まちがえた もんだい は 2〜4問 あとに もう いちど（同じ型・同じレベル・1問に つき 1回） */
-  function planRetest(q) {
+  /* まちがえた もんだい は 2〜3問 あとに もう いちど（K23・同じ型・同じレベル・1問に つき 1回）。1回目の まちがい（じかんぎれ も）で 予定する */
+  function ensureRetest(q) {
     var nq, at;
-    if (q.retest || G.planRetested === G.idx) { return ''; }
+    if (q.retest || G.planRetested === G.idx) { return; }
     G.planRetested = G.idx;
     nq = WH.makeFor(q.g, q.level, S.mode); nq.retest = true;
     at = Math.min(G.qs.length, G.idx + 2 + WH.ri(2));
     G.qs.splice(at, 0, nq);
-    return ' あとで もう いちど おなじ もんだいが でるよ。';
   }
+  function retestNote() { return (G.planRetested === G.idx) ? ' あとで もう いちど おなじ もんだいが でるよ。' : ''; }
 
   /* ================= どうして？（せんせいと＝わけを はなす） ================= */
   function showWhy(q) {
