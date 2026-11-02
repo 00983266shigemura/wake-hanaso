@@ -7,7 +7,7 @@
 
   var WH = {};
   /* このファイルを直したら この数字を +1 する。version.txt にも同じ数字を書く（build_app.py が照合する） */
-  WH.APP_VERSION = 2;
+  WH.APP_VERSION = 3;
   WH.SCHEMA = 1;
   /* 端末にしまう記録の名前は 全部 wake_ で始める（K29＝同じ公開先の 他のアプリの記録を 上書きしない） */
   WH.STORE_KEY = 'wake_hanaso_v1';
@@ -316,6 +316,8 @@
     for (i = 0; i < WH.GENRE_IDS.length; i++) { k = WH.GENRE_IDS[i]; if (!s.g[k]) { s.g[k] = { level: 1, rounds: 0, q: 0, ok: 0, exp: 0 }; } }
     if (!s.mix) { s.mix = { rounds: 0, q: 0, ok: 0, exp: 0 }; }
     if (s.mode !== 'hitori' && s.mode !== 'sensei') { s.mode = 'sensei'; }
+    if (!s.zukan) { s.zukan = []; }
+    WH.cleanZukan(s);
     return s;
   }
   function saveState(s) { try { if (global.localStorage) { global.localStorage.setItem(WH.STORE_KEY, JSON.stringify(s)); } } catch (e) { /* 保存できなくても あそべる */ } }
@@ -331,43 +333,18 @@
   WH.nextLevel = nextLevel;
   WH.LEVEL_NAME = { 1: 'やさしい', 2: 'ふつう', 3: 'むずかしい' };
 
-  /* ================= ごほうび＝はなしの き（みのりを あつめると きが そだち、いきものが あそびに くる） ================= */
+  /* ================= ごほうび＝むしが そだつ（みのりを あつめると たまご→ようちゅう→さなぎ→せいちゅう。せいちゅうは ずかんへ） ================= */
   var GROW = [0, 6, 14, 24];
   WH.GROW = GROW;
   function stageOf(f) { if (f >= GROW[3]) { return 3; } if (f >= GROW[2]) { return 2; } if (f >= GROW[1]) { return 1; } return 0; }
   WH.stageOf = stageOf;
-  WH.STAGE_NAME = ['たね', 'め', 'わかば', 'おおきな き'];
+  WH.STAGE_NAME = ['たまご', 'ようちゅう', 'さなぎ', 'せいちゅう'];
   var PICS = [
-    { id: 'sakana', name: 'さかな', draw: function (ctx) {
-      poly(ctx, [[-26, 0], [-42, -15], [-42, 15]], COL.ao, COL.sumi, 2);
-      poly(ctx, [[-16, -11], [-4, -36], [14, -11]], COL.mizu, COL.sumi, 2);
-      ellipse(ctx, -4, 0, 26, 14, COL.ao, COL.sumi, 2);
-      circle(ctx, 10, -4, 4.5, COL.shiro, COL.sumi, 1.5); circle(ctx, 11, -4, 2, COL.sumi);
-      line(ctx, 17, 5, 22, 3, COL.sumi, 2);
-    } },
-    { id: 'katatsumuri', name: 'かたつむり', draw: function (ctx) {
-      ellipse(ctx, 6, 18, 30, 8, COL.murasaki, COL.sumi, 2); circle(ctx, 26, 8, 9, COL.murasaki, COL.sumi, 2);
-      line(ctx, 29, 0, 33, -12, COL.sumi, 2.5); circle(ctx, 33, -13, 2.5, COL.sumi); line(ctx, 23, 0, 21, -10, COL.sumi, 2.5); circle(ctx, 21, -11, 2.5, COL.sumi);
-      circle(ctx, -10, -2, 20, COL.daidai, COL.sumi, 2);
-      ctx.beginPath(); ctx.strokeStyle = COL.sumi; ctx.lineWidth = 2.5; ctx.arc(-10, -2, 12, 0, Math.PI * 1.5); ctx.stroke();
-      ctx.beginPath(); ctx.arc(-8, -4, 5, 0, Math.PI * 1.5); ctx.stroke(); circle(ctx, 29, 6, 1.8, COL.sumi);
-    } },
     { id: 'tentoumushi', name: 'てんとうむし', draw: function (ctx) {
       line(ctx, -16, -6, -30, -14, COL.sumi, 2.5); line(ctx, -20, 6, -34, 8, COL.sumi, 2.5); line(ctx, -14, 18, -26, 28, COL.sumi, 2.5);
       line(ctx, 16, -6, 30, -14, COL.sumi, 2.5); line(ctx, 20, 6, 34, 8, COL.sumi, 2.5); line(ctx, 14, 18, 26, 28, COL.sumi, 2.5);
       circle(ctx, 0, 4, 23, COL.aka, COL.sumi, 2); circle(ctx, 0, -18, 10, COL.sumi); line(ctx, 0, -10, 0, 27, COL.sumi, 2);
       circle(ctx, -11, -2, 5.5, COL.sumi); circle(ctx, 10, 9, 5.5, COL.sumi); circle(ctx, -8, 16, 4.5, COL.sumi); circle(ctx, 11, -4, 4, COL.sumi);
-    } },
-    { id: 'kotori', name: 'ことり', draw: function (ctx) {
-      poly(ctx, [[-16, 2], [-38, -10], [-34, 8]], COL.mizu, COL.sumi, 2);
-      line(ctx, 4, 18, 4, 30, COL.sumi, 2.5); line(ctx, -6, 18, -6, 30, COL.sumi, 2.5);
-      ellipse(ctx, 0, 4, 21, 15, COL.mizu, COL.sumi, 2); ellipse(ctx, -3, 3, 12, 6, COL.ao, COL.sumi, 1.5);
-      circle(ctx, 17, -13, 11, COL.mizu, COL.sumi, 2); poly(ctx, [[26, -15], [38, -11], [26, -7]], COL.daidai, COL.sumi, 1.5); circle(ctx, 19, -15, 2.2, COL.sumi);
-    } },
-    { id: 'imomushi', name: 'いもむし', draw: function (ctx) {
-      circle(ctx, -28, 10, 9, COL.midori, COL.sumi, 2); circle(ctx, -13, 7, 10, COL.midori, COL.sumi, 2); circle(ctx, 3, 5, 11, COL.midori, COL.sumi, 2);
-      line(ctx, 25, -10, 30, -24, COL.sumi, 2.5); circle(ctx, 30, -25, 2.5, COL.sumi); line(ctx, 18, -10, 16, -22, COL.sumi, 2.5); circle(ctx, 16, -23, 2.5, COL.sumi);
-      circle(ctx, 22, 1, 13, COL.midori, COL.sumi, 2); circle(ctx, 27, -3, 2.5, COL.sumi); line(ctx, 27, 5, 31, 7, COL.sumi, 2);
     } },
     { id: 'kabutomushi', name: 'かぶとむし', draw: function (ctx) {
       line(ctx, -12, -2, -30, -12, COL.sumi, 3); line(ctx, -14, 8, -34, 12, COL.sumi, 3); line(ctx, -8, 18, -26, 30, COL.sumi, 3);
@@ -377,13 +354,6 @@
       line(ctx, 0, -24, 0, -40, COL.sumi, 4); line(ctx, 0, -40, -9, -48, COL.sumi, 3.5); line(ctx, 0, -40, 9, -48, COL.sumi, 3.5);
       circle(ctx, -5, -19, 1.8, COL.shiro); circle(ctx, 5, -19, 1.8, COL.shiro);
     } },
-    { id: 'kaeru', name: 'かえる', draw: function (ctx) {
-      ellipse(ctx, -24, 18, 12, 7, COL.midori, COL.sumi, 2); ellipse(ctx, 24, 18, 12, 7, COL.midori, COL.sumi, 2);
-      ellipse(ctx, 0, 6, 28, 20, COL.midori, COL.sumi, 2);
-      circle(ctx, -13, -14, 9, COL.midori, COL.sumi, 2); circle(ctx, 13, -14, 9, COL.midori, COL.sumi, 2);
-      circle(ctx, -13, -14, 4.5, COL.shiro, COL.sumi, 1); circle(ctx, 13, -14, 4.5, COL.shiro, COL.sumi, 1); circle(ctx, -12, -14, 2, COL.sumi); circle(ctx, 14, -14, 2, COL.sumi);
-      ctx.beginPath(); ctx.arc(0, 2, 12, Math.PI * 0.15, Math.PI * 0.85); ctx.strokeStyle = COL.sumi; ctx.lineWidth = 2; ctx.stroke();
-    } },
     { id: 'chou', name: 'ちょう', draw: function (ctx) {
       ellipse(ctx, -20, -10, 18, 15, COL.daidai, COL.sumi, 2); ellipse(ctx, 20, -10, 18, 15, COL.daidai, COL.sumi, 2);
       ellipse(ctx, -16, 14, 13, 11, COL.ki, COL.sumi, 2); ellipse(ctx, 16, 14, 13, 11, COL.ki, COL.sumi, 2);
@@ -391,7 +361,7 @@
       ellipse(ctx, 0, 2, 5, 22, COL.sumi); line(ctx, -2, -20, -10, -34, COL.sumi, 2); line(ctx, 2, -20, 10, -34, COL.sumi, 2);
     } }
   ];
-  /* 9ひき目から＝絵（img/zukan/<id>.png・甲虫44種）。絵は 読めたら 描く。読めるまでは ？ */
+  /* 4ひき目から＝絵（img/zukan/<id>.png・甲虫44種）。絵は 読めたら 描く。読めるまでは ？。ずかんは 虫だけ（v3＝しげ指示「虫以外は無くして」） */
   var ZUKAN_IMGS = [
     ['herakuresu_ookabuto', 'ヘラクレスオオカブト'], ['kookasasu_ookabuto', 'コーカサスオオカブト'], ['atorasu_ookabuto', 'アトラスオオカブト'], ['neputyuun_ookabuto', 'ネプチューンオオカブト'], ['satan_ookabuto', 'サタンオオカブト'],
     ['guranto_shirokabuto', 'グラントシロカブト'], ['gohonzuno_kabuto', 'ゴホンヅノカブト'], ['akuteon_zoukabuto', 'アクティオンゾウカブト'], ['kentaurusu_ookabuto', 'ケンタウルスオオカブト'], ['sai_kabuto', 'サイカブト'],
@@ -432,6 +402,16 @@
   var PIC_BY_ID = {};
   (function () { var i; for (i = 0; i < PICS.length; i++) { PIC_BY_ID[PICS[i].id] = PICS[i]; } })();
   WH.picById = function (id) { return PIC_BY_ID[id]; };
+  /* 端末に のこった 古い ずかんの きろく（さかな など＝v2 まで）を 外す。外した 数を かえす */
+  function cleanZukan(s) {
+    var i, out = [], n0;
+    if (!s || !s.zukan || !s.zukan.length) { return 0; }
+    n0 = s.zukan.length;
+    for (i = 0; i < s.zukan.length; i++) { if (PIC_BY_ID[s.zukan[i]]) { out.push(s.zukan[i]); } }
+    s.zukan = out;
+    return n0 - out.length;
+  }
+  WH.cleanZukan = cleanZukan;
 
   function addFruits(s, n) {
     var events = [], before = stageOf(s.cFruits), after, id;
@@ -454,31 +434,25 @@
   function nextRankAt(total) { var i; for (i = 0; i < RANKS.length; i++) { if (total < RANKS[i][0]) { return RANKS[i][0]; } } return null; }
   WH.nextRankAt = nextRankAt;
 
-  /* き＝たね → め → わかば → おおきな き（みのりの かず）。いきものは きの 上に */
-  function drawTree(ctx, size, stage, picId, fruits) {
-    var s = size / 100, i, n, a;
+  /* むし＝たまご → ようちゅう → さなぎ → せいちゅう（みのりの かず）。せいちゅうは ずかんの 絵（ちえの もり と 同じ そだち方） */
+  function drawStage(ctx, size, stage, picId) {
+    var s = size / 100;
     ctx.save(); ctx.scale(s, s); ctx.lineJoin = 'round';
-    ellipse(ctx, 0, 40, 40, 8, '#c9a06b', COL.sumi, 1.5);
-    if (stage === 0) { ellipse(ctx, 0, 30, 10, 7, COL.cha, COL.sumi, 2); circle(ctx, -3, 28, 1.5, COL.ki); }
-    else if (stage === 1) { line(ctx, 0, 38, 0, 10, COL.midori, 4); ellipse(ctx, -9, 12, 9, 5, '#8fd16a', COL.sumi, 1.5); ellipse(ctx, 9, 6, 9, 5, '#8fd16a', COL.sumi, 1.5); }
+    if (stage === 0) { ellipse(ctx, 0, 2, 24, 30, COL.kami, COL.sumi, 2.5); circle(ctx, -8, -6, 4, COL.ki); circle(ctx, 9, 4, 5, COL.ki); circle(ctx, -4, 16, 3.5, COL.ki); }
+    else if (stage === 1) { circle(ctx, -24, 8, 9, COL.ki, COL.sumi, 2); circle(ctx, -10, 6, 10, COL.ki, COL.sumi, 2); circle(ctx, 5, 4, 10, COL.ki, COL.sumi, 2); circle(ctx, 22, 2, 12, COL.ki, COL.sumi, 2); circle(ctx, 26, -2, 2.2, COL.sumi); }
     else if (stage === 2) {
-      line(ctx, 0, 40, 0, -2, COL.cha, 6);
-      for (i = 0; i < 4; i++) { a = -Math.PI / 2 + (i - 1.5) * 0.7; ellipse(ctx, Math.cos(a) * 14, -4 + Math.sin(a) * 10, 11, 7, '#8fd16a', COL.sumi, 1.5); }
-    } else {
-      line(ctx, 0, 40, 0, 0, COL.cha, 9);
-      circle(ctx, -16, -4, 16, '#58b56a', COL.sumi, 2); circle(ctx, 16, -4, 16, '#58b56a', COL.sumi, 2); circle(ctx, 0, -20, 18, '#8fd16a', COL.sumi, 2);
-      n = Math.min(6, Math.floor((fruits || 0) / 4));
-      for (i = 0; i < n; i++) { circle(ctx, -18 + i * 7.2, -8 + ((i % 2) ? 8 : -6), 4, COL.aka, COL.sumi, 1.2); }
-    }
+      ctx.beginPath(); ctx.moveTo(0, -34); ctx.quadraticCurveTo(26, -6, 16, 24); ctx.quadraticCurveTo(0, 40, -16, 24); ctx.quadraticCurveTo(-26, -6, 0, -34); ctx.closePath();
+      ctx.fillStyle = COL.daidai; ctx.fill(); ctx.strokeStyle = COL.sumi; ctx.lineWidth = 2.5; ctx.stroke();
+      line(ctx, -10, -4, 10, -4, COL.sumi, 2); line(ctx, -12, 8, 12, 8, COL.sumi, 2); line(ctx, -8, 20, 8, 20, COL.sumi, 2); line(ctx, 0, -34, 0, -44, COL.sumi, 3);
+    } else { PIC_BY_ID[picId].draw(ctx); }
     ctx.restore();
-    if (stage === 3 && picId) { ctx.save(); ctx.translate(0, -size * 0.52); ctx.scale(s * 0.55, s * 0.55); PIC_BY_ID[picId].draw(ctx); ctx.restore(); }
   }
-  WH.drawTree = drawTree;
-  function paintTree(canvas, stage, picId, fruits) {
+  WH.drawStage = drawStage;
+  function paintStage(canvas, stage, picId) {
     var c = setupCanvas(canvas);
-    c.ctx.translate(c.w / 2, c.h / 2 + c.h * 0.08); drawTree(c.ctx, Math.min(c.w, c.h) * 0.8, stage, picId, fruits);
+    c.ctx.translate(c.w / 2, c.h / 2); drawStage(c.ctx, Math.min(c.w, c.h) * 0.9, stage, picId);
   }
-  WH.paintTree = paintTree;
+  WH.paintStage = paintStage;
   function paintPic(canvas, picId) {
     var c = setupCanvas(canvas);
     c.ctx.translate(c.w / 2, c.h / 2); c.ctx.scale(Math.min(c.w, c.h) / 110, Math.min(c.w, c.h) / 110); PIC_BY_ID[picId].draw(c.ctx);

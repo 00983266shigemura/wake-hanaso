@@ -34,9 +34,9 @@
     var next = WH.nextRankAt(S.total), need = WH.GROW[3] - S.cFruits, i, g, st, box = el('genre-list'), b;
     setText(el('home-rank'), who + ' ' + WH.rankOf(S.total));
     setText(el('home-fruits'), 'みのり ' + S.total + 'こ' + (next !== null ? '（つぎまで あと ' + (next - S.total) + 'こ）' : '（いちばん うえ！）'));
-    setText(el('home-stage'), WH.STAGE_NAME[stage] + (stage === 3 ? '' : '（おおきな きまで あと ' + need + 'こ）'));
-    setText(el('home-creature'), stage >= 2 ? pic.name + ' が くるかな？' : 'だれが くるかな？');
-    WH.paintTree(el('home-tree'), stage, pic.id, S.cFruits);
+    setText(el('home-stage'), WH.STAGE_NAME[stage] + (stage === 3 ? '' : '（せいちゅうまで あと ' + need + 'こ）'));
+    setText(el('home-creature'), stage >= 2 ? pic.name + ' に なるかな？' : 'なにに なるかな？');
+    WH.paintStage(el('home-tree'), stage, pic.id);
     setText(el('home-zukan-count'), 'ずかん ' + S.zukan.length + 'ひき');
     setText(el('home-ver'), '（v' + WH.APP_VERSION + '）');
     el('mode-hitori').className = 'mbtn' + (sensei() ? '' : ' now');
@@ -365,24 +365,24 @@
     setText(el('res-fruits'), 'みのり ＋' + G.fruits + 'こ（ぜんぶで ' + S.total + 'こ）');
     for (i = 0; i < events.length; i++) {
       if (events[i].kind === 'stage') { lines.push(WH.STAGE_NAME[events[i].stage] + ' に なった！'); }
-      if (events[i].kind === 'visitor') { visitor = events[i].id; lines.push(WH.picById(events[i].id).name + ' が きに あそびに きた！ ずかんに はいったよ'); }
-      if (events[i].kind === 'lap') { lines.push('ぜんぶの いきものが きた！ ' + events[i].lap + 'しゅうめ'); }
+      if (events[i].kind === 'visitor') { visitor = events[i].id; lines.push(WH.picById(events[i].id).name + ' が うまれた！ ずかんに はいったよ'); }
+      if (events[i].kind === 'lap') { lines.push('ぜんぶの むしが そろった！ ' + events[i].lap + 'しゅうめ'); }
     }
     WH.snd.play(G.ok === G.qs.length ? 'perfect' : 'round');
     if (visitor || events.length) { WH.snd.play('grow', G.ok === G.qs.length ? 1.5 : 1.1); }
-    if (lines.length === 0) { lines.push(WH.STAGE_NAME[WH.stageOf(S.cFruits)] + ' が そだっているよ（おおきな きまで あと ' + (WH.GROW[3] - S.cFruits) + 'こ）'); }
+    if (lines.length === 0) { lines.push(WH.STAGE_NAME[WH.stageOf(S.cFruits)] + ' が そだっているよ（せいちゅうまで あと ' + (WH.GROW[3] - S.cFruits) + 'こ）'); }
     setText(el('res-events'), lines.join(' ／ '));
     /* おとなへの ひとこと（K25）＝つぎに きく ことば */
     setText(el('res-bridge'), sensei() ? 'おとなの ひとへ：こたえが あっていても「どうして そう おもったの？」と ききましょう。かたは「ほかのは みんな ○○ だけど…」' : 'おうちの ひとに、1もんだけ「どうして そう おもった？」を はなして みよう');
     el('res-card').className = 'res' + (visitor ? ' born' : '');
     sizeCanvas(el('res-tree'), visitor ? 200 : 150, visitor ? 200 : 150);
     lastRes = visitor ? { stage: 3, id: visitor, pic: true } : { stage: WH.stageOf(S.cFruits), id: WH.PICS[S.cIndex % WH.PICS.length].id, pic: false };
-    if (lastRes.pic) { WH.paintPic(el('res-tree'), lastRes.id); } else { WH.paintTree(el('res-tree'), lastRes.stage, lastRes.id, S.cFruits); }
+    if (lastRes.pic) { WH.paintPic(el('res-tree'), lastRes.id); } else { WH.paintStage(el('res-tree'), lastRes.stage, lastRes.id); }
     stopTimer(); WH.snd.hush();
     show('result');
   }
 
-  /* ================= ずかん（きに きた いきもの） ================= */
+  /* ================= ずかん（うまれた むし） ================= */
   var Z = { page: 0, per: 10, all: false };
   function renderZukan() {
     var box = el('zukan-list'), i, pic, card, c, got, cv, pages = Math.ceil(WH.PICS.length / Z.per), from, to;
@@ -397,7 +397,7 @@
       cv = doc.createElement('canvas'); sizeCanvas(cv, 120, 120); card.appendChild(cv);
       card.appendChild(doc.createElement('div')).textContent = got ? pic.name + (got > 1 ? ' ×' + got : '') : '？？？';
       box.appendChild(card);
-      if (got) { WH.paintPic(cv, pic.id); } else { WH.paintTree(cv, 0, pic.id, 0); }
+      if (got) { WH.paintPic(cv, pic.id); } else { WH.paintStage(cv, 0, pic.id); }
     }
     setText(el('zukan-page'), (Z.page + 1) + ' ／ ' + pages + ' ページ（' + (Z.all ? 'ぜんぶ みる' : S.zukan.length + '／' + WH.PICS.length + ' ひき') + '）');
     el('zukan-prev').style.visibility = Z.page > 0 ? 'visible' : 'hidden';

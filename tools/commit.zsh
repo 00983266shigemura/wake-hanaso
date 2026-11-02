@@ -8,7 +8,7 @@ MSG="$1"
 $2"
 MSG="$MSG
 
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 /usr/bin/git -C "$ROOT" add -A || exit 1
 /usr/bin/git -C "$ROOT" commit -q -m "$MSG" || { print "✕ 記録できませんでした（変更なし？）"; exit 1; }
 /usr/bin/git -C "$ROOT" log --oneline -1

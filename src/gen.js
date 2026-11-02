@@ -986,14 +986,21 @@
           }
         }
       }
-      for (i = 0; i < WH.PICS.length; i++) { try { WH.paintPic(canvas, WH.PICS[i].id); WH.paintTree(canvas, 3, WH.PICS[i].id, 24); ok(true, 'T3 pic'); } catch (e2) { ok(false, 'T3 pic ' + WH.PICS[i].id + ' ' + e2); } }
-      for (i = 0; i < 4; i++) { try { WH.paintTree(canvas, i, WH.PICS[0].id, i * 6); ok(true, 'T3 tree'); } catch (e3) { ok(false, 'T3 tree ' + i + ' ' + e3); } }
+      for (i = 0; i < WH.PICS.length; i++) { try { WH.paintPic(canvas, WH.PICS[i].id); WH.paintStage(canvas, 3, WH.PICS[i].id); ok(true, 'T3 pic'); } catch (e2) { ok(false, 'T3 pic ' + WH.PICS[i].id + ' ' + e2); } }
+      for (i = 0; i < 4; i++) { try { WH.paintStage(canvas, i, WH.PICS[0].id); ok(true, 'T3 stage'); } catch (e3) { ok(false, 'T3 tree ' + i + ' ' + e3); } }
     }
     /* T4 みのり・レベル・絵の 一覧 */
     s = WH.freshState();
-    ok(WH.addFruits(s, 5).length === 0 && WH.stageOf(s.cFruits) === 0, 'T4 5こは たね');
-    ok(WH.addFruits(s, 1)[0].kind === 'stage', 'T4 6こで め');
-    WH.addFruits(s, 18); ok(s.zukan.length === 1 && s.zukan[0] === WH.PICS[0].id && s.cFruits === 0, 'T4 24こで いきものが くる');
+    ok(WH.addFruits(s, 5).length === 0 && WH.stageOf(s.cFruits) === 0, 'T4 5こは たまご');
+    ok(WH.addFruits(s, 1)[0].kind === 'stage', 'T4 6こで ようちゅう');
+    WH.addFruits(s, 18); ok(s.zukan.length === 1 && s.zukan[0] === WH.PICS[0].id && s.cFruits === 0, 'T4 24こで せいちゅうが ずかんへ');
+    ok(WH.STAGE_NAME.join(',') === 'たまご,ようちゅう,さなぎ,せいちゅう', 'T4 そだちの なまえ＝たまご ようちゅう さなぎ せいちゅう');
+    (function () {
+      var gone = ['sakana', 'katatsumuri', 'kotori', 'imomushi', 'kaeru'], k2, bad2 = 0, t = { zukan: ['sakana', 'tentoumushi', 'kaeru', 'herakuresu_ookabuto'] };
+      for (k2 = 0; k2 < gone.length; k2++) { if (WH.picById(gone[k2])) { bad2++; } }
+      ok(bad2 === 0 && WH.PICS.length === 3 + WH.ZUKAN_IMGS.length, 'T4 ずかんは 虫だけ（' + WH.PICS.length + 'ひき・虫いがい ' + bad2 + '）');
+      ok(WH.cleanZukan(t) === 2 && t.zukan.join(',') === 'tentoumushi,herakuresu_ookabuto', 'T4 古い きろくの 虫いがい を 外す（' + t.zukan.join(',') + '）');
+    })();
     ok(WH.nextLevel(1, 4, 5) === 2 && WH.nextLevel(3, 5, 5) === 3 && WH.nextLevel(2, 2, 5) === 1 && WH.nextLevel(1, 1, 5) === 1 && WH.nextLevel(2, 3, 5) === 2, 'T4 レベルの 上げ下げ');
     ok(WH.ITEMS.length === 66, 'T4 絵は 66');
     seen = {}; for (n = 0; n < WH.ITEMS.length; n++) { ok(!seen[WH.ITEMS[n].id], 'T4 id 重複 ' + WH.ITEMS[n].id); seen[WH.ITEMS[n].id] = true; }
