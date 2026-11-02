@@ -424,6 +424,7 @@
     rows += '<tr><td>まぜまぜ</td><td>−</td><td>' + S.mix.rounds + '</td><td>' + S.mix.q + '</td><td>' + S.mix.ok + '</td><td>' + (S.mix.exp || 0) + '</td></tr>';
     t.innerHTML = '<tr><th>かた</th><th>レベル</th><th>かい</th><th>もん</th><th>せいかい</th><th>わけ</th></tr>' + rows;
     setText(el('grown-ver'), 'v' + WH.APP_VERSION + '・みのり ' + S.total + '・ずかん ' + S.zukan.length);
+    setText(el('grown-off'), offText());
     el('reset-2').style.display = 'none';
   }
   var holdTimer = null;
@@ -457,10 +458,25 @@
   }
   var cacheReady = false;
   function reloadIfIdle() { if (!cacheReady || screen !== 'home') { return; } cacheReady = false; global.location.reload(); }
+  /* 通信なしの じゅんび（K16）＝端末へ しまえたかを おとなのひと に出す。パソコンでは確かめられない（今のブラウザに しくみが無い）ので、実機で見る入口 */
+  var OFF_NAME = ['まだ しまっていない', 'しまいおわり＝つうしん なしで ひらける', 'たしかめている', 'しまっている とちゅう', 'あたらしい はんを しまいおわり＝はじめの がめんで いれかわる', 'いちらんが みつからない'];
+  var off = { err: false, loaded: 0, total: 0 };
+  function offText() {
+    var ac = global.applicationCache, st = -1;
+    if (!ac) { return 'つうしん なしの じゅんび：この たんまつに しまう しくみが ない'; }
+    try { st = ac.status; } catch (e) { st = -1; }
+    return 'つうしん なしの じゅんび：' + (OFF_NAME[st] || 'わからない') + (st === 3 && off.total ? '（' + off.loaded + '／' + off.total + '）' : '') + (off.err ? '・しまえなかった（つうしんか ようりょう）。つうしんの ある ところで ひらきなおす' : '');
+  }
+  function showOff() { if (screen === 'grown') { setText(el('grown-off'), offText()); } }
+  WH.offText = offText;
   function watchCache() {
     var ac = global.applicationCache;
     if (!ac || !ac.addEventListener) { return; }
-    ac.addEventListener('updateready', function () { try { ac.swapCache(); } catch (e) { /* つぎに */ } cacheReady = true; reloadIfIdle(); }, false);
+    ac.addEventListener('updateready', function () { try { ac.swapCache(); } catch (e) { /* つぎに */ } cacheReady = true; reloadIfIdle(); showOff(); }, false);
+    ac.addEventListener('progress', function (ev) { off.err = false; off.loaded = ev && ev.loaded ? ev.loaded : off.loaded + 1; off.total = ev && ev.total ? ev.total : off.total; showOff(); }, false);
+    ac.addEventListener('error', function () { off.err = true; showOff(); }, false);
+    ac.addEventListener('cached', function () { off.err = false; showOff(); }, false);
+    ac.addEventListener('noupdate', function () { off.err = false; showOff(); }, false);
   }
 
   /* ================= 押した 手ごたえ（K26） ================= */
@@ -604,6 +620,7 @@
     fire(targets[0], 'touchstart'); fire(el('q-text'), 'click'); ok(!hasCls(targets[0], 'press'), 'K26 click でも はずれる');
     ok(dur.indexOf('0.05s') === 0, 'K26 おして 0.1びょう いないに かわる（transition ' + dur + '）');
     ok(pressTarget(el('grown-btn')) === null && pressTarget(el('grown-snd-test')) === null, 'K26 おとなの ながおし・おとなのひと の がめん には つけない');
+    renderGrown(); ok(el('grown-off').textContent.indexOf('つうしん なしの じゅんび：') === 0 && WH.offText().length > 9, 'K16 おとなのひと に 通信なしの じゅんび が でる（' + el('grown-off').textContent + '）');
     ok(screen === scr0 && G.idx === idx0 && !G.done, 'K26 touch だけでは しょりが はしらない');
     lines.push('K26 ' + (bad.length === 0 ? 'OK' : 'NG') + ' おした てごたえ ' + targets.length + 'こ（ボタン ' + nBtn + '・カード ' + nCard + '）・つけない ' + skipped.length + 'こ');
     /* K21 まちがえたときの 型（ひとりで）＝1回目 ヒント・2回目 こたえ。K23＝まちがえた もんだい が 2〜3問 あとに もう いちど */

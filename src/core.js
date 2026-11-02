@@ -7,7 +7,7 @@
 
   var WH = {};
   /* このファイルを直したら この数字を +1 する。version.txt にも同じ数字を書く（build_app.py が照合する） */
-  WH.APP_VERSION = 3;
+  WH.APP_VERSION = 4;
   WH.SCHEMA = 1;
   /* 端末にしまう記録の名前は 全部 wake_ で始める（K29＝同じ公開先の 他のアプリの記録を 上書きしない） */
   WH.STORE_KEY = 'wake_hanaso_v1';
