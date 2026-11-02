@@ -21,7 +21,7 @@ while [ "$t" -lt "$LIMIT" ]; do
       # 全ファイル＝offline.appcache の CACHE 一覧（./ を除く）＋offline.appcache・version.txt を 本番と 照合（絵が1枚でも遅れると 通信なしで 開けなくなる）
       R=/Users/shigemurasatoshi/dev/wake-hanaso
       okn=0; ngn=0; ngl=""
-      for f in $(sed -n '/^CACHE:/,/^NETWORK:/p' "$R/offline.appcache" | grep -v '^CACHE:\|^NETWORK:\|^\./$\|^$') offline.appcache version.txt; do
+      for f in $(sed -n '/^CACHE:/,/^NETWORK:/p' "$R/offline.appcache" | grep -v '^CACHE:\|^NETWORK:\|^\./\|^$') offline.appcache version.txt; do
         lm=$(/sbin/md5 -q "$R/$f" 2>/dev/null); vm=$(/usr/bin/curl -s -f "${PAGES_URL}${f}?cc=$(date +%s)" | /sbin/md5 -q)
         if [ -n "$lm" ] && [ "$lm" = "$vm" ]; then okn=$((okn + 1)); else ngn=$((ngn + 1)); ngl="$ngl $f"; fi
       done
