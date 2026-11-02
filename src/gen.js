@@ -749,9 +749,51 @@
     for (tries = 0; tries < 8 && !q; tries++) { q = g.make(level); }
     if (!q) { q = makeKazoe(1); }
     if (q.numeric) { q.answerIndex = q.choices.indexOf(q.answer); }
+    annotate(q);
     return q;
   }
   WH.makeQuestion = makeQuestion;
+  /* どの問題にも 解き方の名前（schema）・数（nItems）・順位の深さ（depth）・1回で答える数（asks）を 付ける＝本番基準表（bench.js）で 照らす */
+  var ASK_DEPTH = { long: 1, short: 1, most: 1, least: 1, heavy: 1, light: 1, second: 2, secondshort: 2, secondlight: 2, third: 3, thirdshort: 3, fourth: 4 };
+  function annotate(q) {
+    if (!q.schema) { q.schema = q.sub || q.g; }
+    if (q.asks === undefined) { q.asks = q.kind === 'pair' ? 2 : 1; }
+    if (q.nItems === undefined) { q.nItems = q.choices ? q.choices.length : (q.pair ? 2 : 0); }
+    if (q.depth === undefined) { q.depth = (q.ask && ASK_DEPTH[q.ask]) ? ASK_DEPTH[q.ask] : 1; }
+  }
+  /* 本番基準の 照らし合わせ（設計 5-4）＝いちばん上を 型ごとに per 問 作り、列ごとに 数える */
+  function benchStats(gid, per) {
+    var b = WH.BENCH && WH.BENCH[gid], st = { gid: gid, per: per, maxN: 0, atN: 0, maxD: 0, atD: 0, two: 0, sch: {}, nsch: 0, manySeen: 0, manyBad: 0, bad: [] }, i, q;
+    if (!b) { st.bad.push('ひょうに ない'); return st; }
+    for (i = 0; i < per; i++) {
+      q = makeQuestion(gid, 3);
+      if (q.nItems > st.maxN) { st.maxN = q.nItems; }
+      if (b.n && q.nItems >= b.n) { st.atN++; }
+      if (q.depth > st.maxD) { st.maxD = q.depth; }
+      if (b.depth && q.depth >= b.depth) { st.atD++; }
+      if (q.asks >= 2) { st.two++; }
+      if (!st.sch[q.schema]) { st.sch[q.schema] = 0; st.nsch++; }
+      st.sch[q.schema]++;
+      if (b.many && q.schema === b.many.schema) { st.manySeen++; if (q.nItems < b.many.n) { st.manyBad++; } }
+    }
+    if (b.n && !(st.maxN >= b.n && st.atN * 3 >= per)) { st.bad.push('n'); }
+    if (b.depth && !(st.maxD >= b.depth && st.atD * 3 >= per)) { st.bad.push('depth'); }
+    if (b.asks && !(st.two * 3 >= per)) { st.bad.push('asks'); }
+    if (b.schemas && !(st.nsch >= b.schemas)) { st.bad.push('schemas'); }
+    if (b.many && !(st.manySeen > 0 && st.manyBad === 0)) { st.bad.push('many'); }
+    return st;
+  }
+  function benchLine(st) {
+    var b = WH.BENCH[st.gid] || {}, s = st.gid, k, names = [];
+    for (k in st.sch) { if (st.sch.hasOwnProperty(k)) { names.push(k + st.sch[k]); } }
+    if (b.n) { s += ' かず ' + st.maxN + '/' + b.n + '（とどく ' + st.atN + '/' + st.per + '）'; }
+    if (b.depth) { s += ' じゅんい ' + st.maxD + '/' + b.depth + '（とどく ' + st.atD + '/' + st.per + '）'; }
+    if (b.asks) { s += ' ふたつ きく ' + st.two + '/' + st.per; }
+    if (b.schemas) { s += ' ときかた ' + st.nsch + '/' + b.schemas + '（' + names.join(' ') + '）'; } else { s += ' ときかたは てらさない（' + (b.why || '') + '）'; }
+    if (b.many) { s += ' ' + b.many.schema + '=' + b.many.n + 'こ（でた ' + st.manySeen + '・たりない ' + st.manyBad + '）'; }
+    return s;
+  }
+  WH.benchStats = benchStats; WH.benchLine = benchLine;
   /* ひとりで（子が ひとりで タップ）の ときは、こたえの ない もんだい を 出さない */
   WH.makeFor = function (gid, level, mode) {
     var q, tries;
@@ -906,6 +948,12 @@
     function ok(cond, label) { if (cond) { pass++; } else { fail++; out.push('FAIL ' + label); } }
     var g, lvl, i, j, k, q, n, s, seen, cnt, a, b, canvas, texts, hits, kk, allText = '';
     WH.seed(4242);
+    /* K10 本番基準（bench.js の 表）＝いちばん上を 型ごとに 200問。どれか 1つでも 足りない 型が あれば FAIL */
+    for (g = 0; g < GENRES.length; g++) {
+      s = benchStats(GENRES[g].id, 200);
+      ok(s.bad.length === 0, 'K10 ほんばん きじゅん ' + benchLine(s) + ' たりない=' + s.bad.join(','));
+      if (s.bad.length === 0) { out.push('K10 ほんばん きじゅん OK ' + benchLine(s)); }
+    }
     /* T1 ますの 道具 */
     ok(cellSig([[0, 0], [0, 1]]) === cellSig([[3, 3], [3, 4]]), 'T1 ずらしても おなじ');
     ok(congruent([[0, 0], [0, 1], [1, 0]], [[0, 1], [1, 0], [1, 1]]), 'T1 まわしても おなじ（L）');

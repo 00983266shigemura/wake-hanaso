@@ -850,6 +850,36 @@
 })(typeof window !== 'undefined' ? window : this);
 </script>
 <script>
+/* わけを はなそう ―― 本番基準表（いちばん上＝むずかしい の 下限）。gen.js とは別のファイル＝表を下げる変更が 別の差分として 見える。
+   出どころ＝出版社の 類題集（練習帳）20問の 紙面の 数と 問い方（設計 juken_wake_hanaso_kaizen_20261103 第1節・5-3）。
+   列＝
+     n       数（くらべる 物の かず）          … いちばん上 200問の 最大値が これ以上、かつ これに 届く問が 3分の1 以上
+     depth   順位の深さ（3ばんめ＝3）         … 同じ
+     asks    1回の 読みで 答える数            … 2つの 組が 3分の1 以上
+     schemas 解き方の数                       … 出た 解き方の 種類が これ以上
+     many    ある 解き方で 必ず出す 数         … その 解き方の 問は 全部 これ以上（画面に 入る 最大へ 下げた所）
+   null＝その列は 照らさない（why に わけ）。自己点検（gen.js の WH.selfTest・K10）が この表で 照らし、足りなければ FAIL。 */
+(function (global) {
+  'use strict';
+  var WH = global.WH;
+  WH.BENCH = {
+    himo: { n: 6, depth: 3, asks: 2, schemas: 4, src: '練習帳1（6本・いちばん ながい○と 3ばんめに みじかい△を 1回で・40秒）' },
+    kurabe: { n: 5, depth: 4, asks: 2, schemas: 4, src: '練習帳2（豆5皿と升5つ・対応）・3（コップ5つ・1番目○と4番目△）' },
+    shiso: { n: 4, depth: 2, asks: 2, schemas: 3, src: '練習帳4（4匹・3台・2番目に重い○と2番目に軽い△）' },
+    kazoe: { n: null, depth: null, asks: 2, schemas: 3, src: '練習帳7（3種のうち2種を数える）・8・9' },
+    wakeru: { n: null, depth: null, asks: 2, schemas: 3, src: '練習帳10（4人に2こずつ・3こずつを2問）' },
+    kazuhanashi: { n: null, depth: null, asks: null, schemas: 3, src: '練習帳11（数3つ・ふえて へる）' },
+    nakama: { n: null, depth: null, asks: null, schemas: 4, src: '練習帳5（11こを自分で2つに分ける）・6（4つ×3部屋・はずれは近い仲間）',
+      many: { schema: 'wakeoo', n: 8, why: '練習帳5は11こ。画面（iPad 横 1024×640）に 絵が 入る 最大＝8こ（4こ×2列）に 下げた' } },
+    onajie: { n: 5, depth: null, asks: null, schemas: 3, src: '練習帳12（細部が1か所ずつ違う 絵から）' },
+    katachi: { n: null, depth: null, asks: null, schemas: 5, src: '練習帳13・14・16・17・20（ハート・星・曲線・回したかけら・ななめの切り方）' },
+    ana: { n: null, depth: null, asks: null, schemas: null, src: '練習帳15', why: '練習帳15は形が1つ（穴3つ・候補5つ）＝解き方の数を外す' },
+    hanashi: { n: null, depth: null, asks: null, schemas: null, src: '出題例（お話作り・口頭質問）', why: '正解のない問い＝解き方の数を外す' }
+  };
+  WH.BENCH_COLS = ['n', 'depth', 'asks', 'schemas'];
+})(typeof window !== 'undefined' ? window : this);
+</script>
+<script>
 /* わけを はなそう ―― もんだいの 型（作る・描く・ことば・自己点検）。古い Safari で動く書き方だけ。
    型（1対1の 口頭試問の 練習帳 20問と、公開されている 出題例 から）＝
      himo        ひも（むすびめを ほどくと どれが ながい）      … 練習帳1（未測量）
@@ -1601,9 +1631,51 @@
     for (tries = 0; tries < 8 && !q; tries++) { q = g.make(level); }
     if (!q) { q = makeKazoe(1); }
     if (q.numeric) { q.answerIndex = q.choices.indexOf(q.answer); }
+    annotate(q);
     return q;
   }
   WH.makeQuestion = makeQuestion;
+  /* どの問題にも 解き方の名前（schema）・数（nItems）・順位の深さ（depth）・1回で答える数（asks）を 付ける＝本番基準表（bench.js）で 照らす */
+  var ASK_DEPTH = { long: 1, short: 1, most: 1, least: 1, heavy: 1, light: 1, second: 2, secondshort: 2, secondlight: 2, third: 3, thirdshort: 3, fourth: 4 };
+  function annotate(q) {
+    if (!q.schema) { q.schema = q.sub || q.g; }
+    if (q.asks === undefined) { q.asks = q.kind === 'pair' ? 2 : 1; }
+    if (q.nItems === undefined) { q.nItems = q.choices ? q.choices.length : (q.pair ? 2 : 0); }
+    if (q.depth === undefined) { q.depth = (q.ask && ASK_DEPTH[q.ask]) ? ASK_DEPTH[q.ask] : 1; }
+  }
+  /* 本番基準の 照らし合わせ（設計 5-4）＝いちばん上を 型ごとに per 問 作り、列ごとに 数える */
+  function benchStats(gid, per) {
+    var b = WH.BENCH && WH.BENCH[gid], st = { gid: gid, per: per, maxN: 0, atN: 0, maxD: 0, atD: 0, two: 0, sch: {}, nsch: 0, manySeen: 0, manyBad: 0, bad: [] }, i, q;
+    if (!b) { st.bad.push('ひょうに ない'); return st; }
+    for (i = 0; i < per; i++) {
+      q = makeQuestion(gid, 3);
+      if (q.nItems > st.maxN) { st.maxN = q.nItems; }
+      if (b.n && q.nItems >= b.n) { st.atN++; }
+      if (q.depth > st.maxD) { st.maxD = q.depth; }
+      if (b.depth && q.depth >= b.depth) { st.atD++; }
+      if (q.asks >= 2) { st.two++; }
+      if (!st.sch[q.schema]) { st.sch[q.schema] = 0; st.nsch++; }
+      st.sch[q.schema]++;
+      if (b.many && q.schema === b.many.schema) { st.manySeen++; if (q.nItems < b.many.n) { st.manyBad++; } }
+    }
+    if (b.n && !(st.maxN >= b.n && st.atN * 3 >= per)) { st.bad.push('n'); }
+    if (b.depth && !(st.maxD >= b.depth && st.atD * 3 >= per)) { st.bad.push('depth'); }
+    if (b.asks && !(st.two * 3 >= per)) { st.bad.push('asks'); }
+    if (b.schemas && !(st.nsch >= b.schemas)) { st.bad.push('schemas'); }
+    if (b.many && !(st.manySeen > 0 && st.manyBad === 0)) { st.bad.push('many'); }
+    return st;
+  }
+  function benchLine(st) {
+    var b = WH.BENCH[st.gid] || {}, s = st.gid, k, names = [];
+    for (k in st.sch) { if (st.sch.hasOwnProperty(k)) { names.push(k + st.sch[k]); } }
+    if (b.n) { s += ' かず ' + st.maxN + '/' + b.n + '（とどく ' + st.atN + '/' + st.per + '）'; }
+    if (b.depth) { s += ' じゅんい ' + st.maxD + '/' + b.depth + '（とどく ' + st.atD + '/' + st.per + '）'; }
+    if (b.asks) { s += ' ふたつ きく ' + st.two + '/' + st.per; }
+    if (b.schemas) { s += ' ときかた ' + st.nsch + '/' + b.schemas + '（' + names.join(' ') + '）'; } else { s += ' ときかたは てらさない（' + (b.why || '') + '）'; }
+    if (b.many) { s += ' ' + b.many.schema + '=' + b.many.n + 'こ（でた ' + st.manySeen + '・たりない ' + st.manyBad + '）'; }
+    return s;
+  }
+  WH.benchStats = benchStats; WH.benchLine = benchLine;
   /* ひとりで（子が ひとりで タップ）の ときは、こたえの ない もんだい を 出さない */
   WH.makeFor = function (gid, level, mode) {
     var q, tries;
@@ -1758,6 +1830,12 @@
     function ok(cond, label) { if (cond) { pass++; } else { fail++; out.push('FAIL ' + label); } }
     var g, lvl, i, j, k, q, n, s, seen, cnt, a, b, canvas, texts, hits, kk, allText = '';
     WH.seed(4242);
+    /* K10 本番基準（bench.js の 表）＝いちばん上を 型ごとに 200問。どれか 1つでも 足りない 型が あれば FAIL */
+    for (g = 0; g < GENRES.length; g++) {
+      s = benchStats(GENRES[g].id, 200);
+      ok(s.bad.length === 0, 'K10 ほんばん きじゅん ' + benchLine(s) + ' たりない=' + s.bad.join(','));
+      if (s.bad.length === 0) { out.push('K10 ほんばん きじゅん OK ' + benchLine(s)); }
+    }
     /* T1 ますの 道具 */
     ok(cellSig([[0, 0], [0, 1]]) === cellSig([[3, 3], [3, 4]]), 'T1 ずらしても おなじ');
     ok(congruent([[0, 0], [0, 1], [1, 0]], [[0, 1], [1, 0], [1, 1]]), 'T1 まわしても おなじ（L）');

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """わけを はなそう ── index.html と offline.appcache を組み立てる唯一の道具。
 
-src/template.html の <!--CORE_JS--> に src/core.js、<!--GEN_JS--> に src/gen.js、<!--UI_JS--> に src/ui.js を埋め込み、
+src/template.html の <!--CORE_JS--> に src/core.js、<!--BENCH_JS--> に src/bench.js（本番基準表）、<!--GEN_JS--> に src/gen.js、<!--UI_JS--> に src/ui.js を埋め込み、
 index.html に書く。あわせて version.txt と core.js の APP_VERSION が一致するかを見て、
 offline.appcache（端末にしまうファイルの一覧）を md5 入りで書き直す
 （中身が変わるたびに一覧も変わる＝古い版が端末に残り続けない）。
@@ -16,7 +16,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-PARTS = [('<!--CORE_JS-->', 'core.js'), ('<!--GEN_JS-->', 'gen.js'), ('<!--UI_JS-->', 'ui.js')]
+PARTS = [('<!--CORE_JS-->', 'core.js'), ('<!--BENCH_JS-->', 'bench.js'), ('<!--GEN_JS-->', 'gen.js'), ('<!--UI_JS-->', 'ui.js')]
 
 
 def read(p):
