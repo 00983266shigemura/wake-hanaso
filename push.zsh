@@ -1,6 +1,6 @@
 # わけを はなそう を GitHub Pages へ公開する台本（しげが1行で実行する。名前は毎回この1つ）
 #   中でやること（実行順）
-#   1 組み立てと中身の一致  2 公開先の登録  3 取り込みが途中で止まっていないか  4 GitHub に置き場が無ければ作る
+#   1 組み立て・公開前の検査（check_all 9段・FAIL なら止まる）・中身の一致  2 公開先の登録  3 取り込みが途中で止まっていないか  4 GitHub に置き場が無ければ作る
 #   5 公開先の分を先に取り込む  6 送る  7 送れたか  8 Pages（公開のしくみ）を入れる  9 本番の中身が手元と同じか
 #   止まる条件に当たったら その場で終わる（強制上書き・履歴の書き換えはしない）。6より前で止まれば公開は何も変わらない。
 #
@@ -41,8 +41,16 @@ TRIES="${KZ_TRIES:-30}"
 
 stop() { print "✕ 中止：$1"; print "（ここで止めました。結果はCCが読みます）"; exit 1; }
 
-print "== 1/9 組み立てと中身の一致 =="
+print "== 1/9 組み立て・公開前の検査・中身の一致 =="
 /usr/bin/python3 "${REPO_DIR}/tools/build_app.py" > /dev/null || stop "組み立てに失敗しました（何も公開していません）"
+# 組み立ての すぐ後に 検査を まとめて 回す（9段＝本番基準 K10・自己点検・1がめん・制限時間 ほか）。FAIL なら 送らない
+CHECK_OUT="$(zsh "${REPO_DIR}/tools/check_all.zsh" 2>&1)"
+CHECK_RC=$?
+if [[ $CHECK_RC -ne 0 ]] || ! print -r -- "$CHECK_OUT" | grep -q "けっか: PASS"; then
+  print -r -- "$CHECK_OUT" | grep -E "^FAIL|=FAIL|けっか" | head -15
+  stop "公開前の検査（check_all）が FAIL です。何も公開していません"
+fi
+print "✓ 公開前の検査 PASS（9段）"
 DIRTY="$("$GIT" -C "$REPO_DIR" status --porcelain)" || stop "中身の見比べができませんでした"
 if [[ -n "$DIRTY" ]]; then
   print "----"; print -r -- "$DIRTY"; print "----"

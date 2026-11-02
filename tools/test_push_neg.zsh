@@ -40,6 +40,33 @@ if [[ $rc -eq 1 ]] && print -r -- "$out" | grep -q -- "記録の名義" && [[ -z
 else
   print "✕ (d) 名義が公開用でない ＝ 想定と違う（exit=$rc）"; print -r -- "$out" | tail -5; bad=1
 fi
+# (e) 本番基準表の値を 1つ 上げた 複製（ひも n 6→7）→ 1/9 の 公開前の検査（check_all）で 止まり、何も 送らない
+#     (e0) 対照＝上げない 複製は 検査を 通り、4/9 で 止まる（gh は 常に 失敗の 代役・公開先は 手元の 空の 置き場）
+for cs in e0 e; do
+  rm -rf "$WORK/$cs" "$WORK/${cs}_origin"; git init -q --bare "$WORK/${cs}_origin" && git clone -q "$ROOT" "$WORK/$cs" && cp "$ROOT/icon.png" "$WORK/$cs/icon.png" \
+    && git -C "$WORK/$cs" remote set-url origin "$WORK/${cs}_origin"
+  if [[ "$cs" == "e" ]]; then
+    sed -i '' 's/himo: { n: 6, depth: 3,/himo: { n: 7, depth: 3,/' "$WORK/e/src/bench.js"
+    grep -q "himo: { n: 7, depth: 3," "$WORK/e/src/bench.js" || { print "✕ (e) 表の値を 上げられなかった"; bad=1; }
+    git -C "$WORK/e" -c user.name="00983266shigemura" -c user.email="296550467+00983266shigemura@users.noreply.github.com" commit -q -am "test bench +1"
+  fi
+  out="$(KZ_REPO_DIR="$WORK/$cs" KZ_LOG_DIR="$WORK/logs" KZ_GH=/usr/bin/false KZ_ORIGIN_URL="$WORK/${cs}_origin" zsh "$ROOT/push.zsh" 2>&1)"; rc=$?
+  sent="$(git -C "$WORK/${cs}_origin" branch --list main)"
+  if [[ "$cs" == "e" ]]; then
+    if [[ $rc -eq 1 ]] && print -r -- "$out" | grep -q -- "公開前の検査（check_all）が FAIL" && print -r -- "$out" | grep -q "FAIL K10 ほんばん きじゅん himo" && [[ -z "$sent" ]]; then
+      print "✓ (e) 表の値を 1つ 上げた 複製 ＝ 公開前の検査で 止まった（何も送っていない）"; print -r -- "$out" | grep -E "FAIL K10|中止" | cut -c1-160
+    else
+      print "✕ (e) 想定と違う（exit=$rc）"; print -r -- "$out" | tail -8; bad=1
+    fi
+  else
+    if [[ $rc -eq 1 ]] && print -r -- "$out" | grep -q -- "✓ 公開前の検査 PASS" && print -r -- "$out" | grep -q -- "置き場を作れませんでした" && [[ -z "$sent" ]]; then
+      print "✓ (e0) 対照＝上げない 複製は 検査を 通り 4/9 で 止まった（何も送っていない）"
+    else
+      print "✕ (e0) 想定と違う（exit=$rc）"; print -r -- "$out" | tail -8; bad=1
+    fi
+  fi
+  sleep 1
+done
 rm -rf "$WORK"
-[[ $bad -eq 0 ]] && print "== けっか: PASS（4/4） ==" || print "== けっか: FAIL =="
+[[ $bad -eq 0 ]] && print "== けっか: PASS（6/6） ==" || print "== けっか: FAIL =="
 exit $bad
