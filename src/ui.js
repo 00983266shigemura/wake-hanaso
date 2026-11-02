@@ -294,10 +294,20 @@
   function showWhy(q) {
     G.why = true;
     setText(el('why-ask'), WH.WHY_ASK[WH.ri(2)]);
-    showEl('why-box', true); showEl('frame-box', false); showEl('why-said', false); showEl('why-btns', true);
+    showEl('why-box', true); showEl('frame-box', false); showEl('why-said', false); showEl('why-btns', true); showEl('why-undo', q.kind !== 'open');
     setText(el('msg'), q.kind === 'open' ? 'はなせたかな？ おとなが えらんでね' : 'わけを はなしたら、おとなが えらんでね');
     el('msg').className = 'msg';
     WH.snd.play('hanashi');
+  }
+  /* おとなの 代理タップの やりなおし＝こたえを 取り消して えらびなおす（こたえた 回数には 数えない） */
+  function undoWhy() {
+    var q = G.qs[G.idx];
+    if (!G.why || q.kind === 'open') { return; }
+    G.why = false; G.pending = null; G.frameShown = false;
+    showEl('why-box', false); showEl('frame-box', false);
+    clearPicks();
+    setText(el('msg'), 'もう いちど えらんでね'); el('msg').className = 'msg';
+    if (G.read) { startTimer(WH.timeFor(q)); }
   }
   function rateWhy(exp) {
     var q = G.qs[G.idx];
@@ -517,7 +527,9 @@
     on('why-ok', function () { rateWhy(2); });
     on('why-help', function () { rateWhy(1); });
     on('why-no', function () { rateWhy(0); });
-    on('why-said', function () { rateWhy(1); });
+    on('why-said-ok', function () { rateWhy(1); });
+    on('why-said-no', function () { rateWhy(0); });
+    on('why-undo', undoWhy);
     on('res-again', function () { startRound(G.gid); });
     on('res-home', function () { renderHome(); show('home'); });
     el('choices').addEventListener('click', function (ev) {
@@ -615,9 +627,14 @@
     ok(el('q-text').style.display === 'none' && el('sensei-box').style.display !== 'none' && el('sensei-text').style.display !== 'none' && el('say-btn').style.display === 'none', 'せんせいと＝もんだい文は おとなの おびだけ・よむ ボタン なし');
     senseiRead();
     ok(el('sensei-text').style.display === 'none' && G.read === true, 'せんせいと＝よんだよ で 文が かくれる（1かいで きく）');
-    onChoice(q.answerIndex);
+    onChoice(wrongIdx(q)[0]);
     ok(G.why === true && el('why-box').style.display !== 'none' && !G.done, 'せんせいと＝せいかいの まえに「どうして？」');
+    undoWhy();
+    ok(G.why === false && G.pending === null && G.tries === 0 && el('why-box').style.display === 'none' && choiceNodes()[wrongIdx(q)[0]].className.indexOf('picked') < 0, 'やりなおし＝おとなの 代理タップを 取り消せる（こたえた 回数に 数えない）');
+    onChoice(q.answerIndex);
+    ok(G.why === true, 'やりなおしの あと もう いちど「どうして？」');
     rateWhy(1);
+    ok(el('why-said-no').style.display !== 'none' || el('why-said').style.display !== 'none', 'てつだって の あとにも「もうすこし」の 出口が ある');
     ok(el('frame-box').style.display !== 'none' && G.why === true, 'てつだって＝いいかたの かたが 出る');
     rateWhy(1);
     ok(G.done === true && G.ok === 1 && G.expNow === 1, 'かたを つかって いえた＝1');

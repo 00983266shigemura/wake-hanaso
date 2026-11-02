@@ -115,7 +115,7 @@
   .why .why-ask{font-size:1.08rem; font-weight:bold; color:var(--murasaki); margin:2px 0 6px;}
   .why .wsmall{font-size:0.54rem; color:var(--ink-soft);}
   .why button{min-height:0; padding:9px 14px; font-size:0.75rem; margin:3px;}
-  #why-ok{background:var(--ao);} #why-help{background:var(--daidai);} #why-no{background:var(--nashi);} #why-said{background:var(--ao);}
+  #why-ok{background:var(--ao);} #why-help{background:var(--daidai);} #why-no{background:var(--nashi);} #why-said-ok{background:var(--ao);} #why-undo{font-size:0.6rem;}
   .frame{background:var(--daidai-bg); border-radius:12px; padding:6px 10px; margin:4px 0; font-size:0.83rem; font-weight:bold; line-height:1.5; word-break:keep-all;}
   /* 制限時間＝へっていく ぼう */
   .tbar{position:relative; height:22px; margin:6px auto 0; max-width:640px; background:var(--line); border-radius:11px; overflow:hidden;}
@@ -277,8 +277,8 @@
   <div id="why-box" class="why" style="display:none">
     <div id="why-ask" class="why-ask">どうして そう おもったの？</div>
     <div id="frame-box" class="frame" style="display:none"><div class="wsmall">いいかたの かた（まねして いってみよう）</div><div id="frame-text"></div></div>
-    <div id="why-btns"><span class="wsmall">おとなが えらぶ：</span><button id="why-ok">はなせた</button><button id="why-help">てつだって</button><button id="why-no">もうすこし</button></div>
-    <button id="why-said" style="display:none">かたを つかって いえた</button>
+    <div id="why-btns"><span class="wsmall">おとなが えらぶ：</span><button id="why-ok">はなせた</button><button id="why-help">てつだって</button><button id="why-no">もうすこし</button><button id="why-undo" class="sub">タップを やりなおす</button></div>
+    <div id="why-said" style="display:none"><button id="why-said-ok">かたを つかって いえた</button><button id="why-said-no" class="sub">もうすこし</button></div>
   </div>
   <div id="msg" class="msg"></div>
   <div class="playfoot"><button id="next-btn" style="display:none">つぎへ</button></div>
