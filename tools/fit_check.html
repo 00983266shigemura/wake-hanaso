@@ -2,7 +2,9 @@
 <!-- わけを はなそう ── iPad よこおき（1024×640）で 1がめんに おさまるかの 検査（CCが使う。tools/check_all.zsh から よぶ）
      ぜんぶの がめん（はじめ・やくそく・11の型×2つの あそびかた＝もんだい・ヒント・どうして・こたえたあと・けっか・ずかん・おとなのひと）の はみだしを 測る。
      あわせて 1まわりを 通して 例外が 出ないかを 見る。#shot=〈なまえ〉 で そこで とめて 撮影用に -->
-<html lang="ja"><head><meta charset="utf-8"><title>fit check</title></head>
+<html lang="ja"><head><meta charset="utf-8"><title>fit check</title>
+<!-- format-ok CCが機械で読む画面の検査（しげ向け成果物ではない） -->
+</head>
 <body style="margin:0">
 <!-- 開くのは 無音の複製だけ（tools/mkpage.py が作る）。index.html を直接開かない＝試験で音を鳴らさない -->
 <iframe id="f" src="../logs/silent_index.html" style="width:1024px;height:640px;border:0;display:block"></iframe>
@@ -27,13 +29,22 @@ document.getElementById('f').onload = function () {
   function stop() { throw 'shot'; }
   function wrongs(q) { var k, o = []; for (k = 0; k < q.choices.length; k++) { if (q.kind === 'choose' ? k !== q.answerIndex : true) { o.push(k); } } return o; }
   function answerRight(q) {
-    var i, ans;
+    var i, ans, r = w.WH.ui.round();
+    if (q.kind === 'pair') { for (i = 0; i < 2; i++) { if (!r.pk.ok[i] && r.pk.picks[i] < 0) { w.WH.ui.onChoice(q.parts[i].answerIndex); } } return; }
     if (q.kind === 'choose') { w.WH.ui.onChoice(q.answerIndex); return; }
     if (q.kind === 'order') { for (i = 0; i < q.answerOrder.length; i++) { w.WH.ui.onChoice(q.answerOrder[i]); } return; }
     ans = q.answerSets[0]; for (i = 0; i < ans.length; i++) { w.WH.ui.onChoice(ans[i]); }
   }
   function answerWrong(q) {
-    var i, ws = wrongs(q), used = [];
+    var i, ws = wrongs(q), used = [], r = w.WH.ui.round(), k;
+    if (q.kind === 'pair') {
+      /* のこりの しるしごとに、どちらの こたえでも ない えらびしを えらぶ */
+      for (i = 0; i < 2; i++) {
+        if (r.pk.ok[i] || r.pk.picks[i] >= 0) { continue; }
+        for (k = 0; k < q.choices.length; k++) { if (k !== q.parts[0].answerIndex && k !== q.parts[1].answerIndex && used.indexOf(k) < 0) { used.push(k); w.WH.ui.onChoice(k); break; } }
+      }
+      return;
+    }
     if (q.kind === 'choose') { w.WH.ui.onChoice(ws[0]); return; }
     if (q.kind === 'order') { ws = q.answerOrder.slice().reverse(); for (i = 0; i < ws.length; i++) { w.WH.ui.onChoice(ws[i]); } return; }
     /* multi＝正解の 組 以外を need 個 */
@@ -86,7 +97,40 @@ document.getElementById('f').onload = function () {
     if (!/timer=1/.test(location.hash)) { w.WH.ui.setTimer(false); }
     w.WH.ui.state().perRound = 5;
     if (meas('home')) { stop(); }
-    var gids = ['himo', 'kurabe', 'shiso', 'kazoe', 'wakeru', 'kazuhanashi', 'nakama', 'onajie', 'katachi', 'ana', 'mix'], gi, lv;
+    /* 解き方ごと（いちばん上・ふたつ きく も・2つの あそびかた）＝もんだい・ヒント・こたえ の すがたを 測る。#shot=sch_<型>_<解き方>[_p][_s][_h|_a] で 撮影 */
+    var forceRound = function (gid, sch, wantPair, senseiMode) {
+      var q = null, t, tag = 'sch_' + gid + '_' + sch + (wantPair ? '_p' : '') + (senseiMode ? '_s' : ''), r;
+      for (t = 0; t < 300 && !q; t++) { q = w.WH.makeQuestion(gid, 3, null, sch); if ((q.kind === 'pair') !== wantPair || (q.kind === 'open' && !senseiMode)) { q = null; } }
+      if (!q) { return false; }
+      w.WH.ui.setMode(senseiMode ? 'sensei' : 'hitori'); w.WH.ui.state().g[gid].level = 3;
+      w.WH.ui.startRound(gid); if (senseiMode) { w.WH.ui.begin(); }
+      w.WH.ui.forceQuestion(q);
+      if (senseiMode) { w.WH.ui.senseiRead(); }
+      if (meas(tag)) { stop(); }
+      if (q.kind !== 'open') {
+        r = w.WH.ui.round();
+        answerWrong(q); if (senseiMode && r.why) { if (meas(tag + '_w')) { stop(); } w.WH.ui.rateWhy(2); }
+        if (meas(tag + '_h')) { stop(); }
+        if (!r.done) { answerWrong(q); }
+        if (!r.done) { errs.push(tag + ' こたえが 出ない'); }
+        if (meas(tag + '_a')) { stop(); }
+      }
+      el('play-back').click();
+      forced++;
+      return true;
+    };
+    var forced = 0, fg, fs, fl, fseen;
+    for (fg = 0; fg < w.WH.GENRES.length; fg++) {
+      if (w.WH.GENRES[fg].id === 'hanashi') { continue; }
+      fl = w.WH.SCHEMA_LV[w.WH.GENRES[fg].id][3]; fseen = {};
+      for (fs = 0; fs < fl.length; fs++) {
+        if (fseen[fl[fs]]) { continue; } fseen[fl[fs]] = true;
+        forceRound(w.WH.GENRES[fg].id, fl[fs], false, false); forceRound(w.WH.GENRES[fg].id, fl[fs], true, false);
+        forceRound(w.WH.GENRES[fg].id, fl[fs], false, true); forceRound(w.WH.GENRES[fg].id, fl[fs], true, true);
+      }
+    }
+    put('FORCED=' + forced);
+    var gids =['himo', 'kurabe', 'shiso', 'kazoe', 'wakeru', 'kazuhanashi', 'nakama', 'onajie', 'katachi', 'ana', 'mix'], gi, lv;
     for (lv = 1; lv <= 3; lv++) { for (gi = 0; gi < gids.length; gi++) { if (gids[gi] !== 'mix') { w.WH.ui.state().g[gids[gi]].level = lv; } } for (gi = 0; gi < gids.length; gi++) { if (lv === 2 || gi % 3 === lv % 3) { playRound(gids[gi], false); } } }
     w.WH.ui.state().g.hanashi.level = 2;
     for (gi = 0; gi < gids.length; gi++) { playRound(gids[gi], true); }

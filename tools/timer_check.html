@@ -58,6 +58,25 @@ document.getElementById('f').onload = function () {
     w.WH.ui.startRound('hanashi'); w.WH.ui.begin(); w.WH.ui.senseiRead();
     ok(el('tbar').style.display === 'none' && tm.timer === null, 'おはなし は ぼうなし');
     el('play-back').click();
+    /* (8) ふたつ きく＝組の 秒数は 練習帳の〈時間〉そのまま。1つめの あとの じかんぎれ は のこりの しるし だけ ヒント→2回目は その しるしの こたえ */
+    ok(w.WH.PAIR_SEC.himo === 40 && w.WH.PAIR_SEC.shiso === 60 && w.WH.PAIR_SEC.cup === 60 && w.WH.PAIR_SEC.pile === 40 && w.WH.PAIR_SEC.kazoe === 60 && w.WH.PAIR_SEC.wakeru === 90, '組の 秒数＝ひも40・シーソー60・コップ60・まめ40・かぞえる60・わける90');
+    w.WH.ui.setMode('hitori'); w.WH.ui.state().g.himo.level = 3; w.WH.ui.startRound('himo');
+    q = w.WH.makeKind('himo', 3, 'pair'); w.WH.ui.forceQuestion(q);
+    ok(tm.total === 40 && tm.timer !== null, 'ふたつ きく ひも＝40びょう total=' + tm.total);
+    w.WH.ui.onChoice(q.parts[0].answerIndex);
+    w.WH.ui.timeout(); r = w.WH.ui.round();
+    ok(r.tries === 1 && r.pk.ok[0] && !r.pk.ok[1] && !r.done && el('msg').textContent.indexOf('じかんだよ') === 0 && el('msg').textContent.indexOf('△＝') >= 0 && el('msg').textContent.indexOf('○＝') < 0 && tm.left === tm.total, '1つめの あとの じかんぎれ＝のこりの △ だけ ヒント');
+    w.WH.ui.timeout();
+    ok(r.done === true && tm.timer === null && el('next-btn').style.display !== 'none' && el('choices').getElementsByClassName('choice')[q.parts[1].answerIndex].className.indexOf('right') >= 0, '2回目の じかんぎれ＝△ の こたえ');
+    el('play-back').click();
+    w.WH.ui.setMode('sensei'); w.WH.ui.state().g.kurabe.level = 3; w.WH.ui.startRound('kurabe'); w.WH.ui.begin();
+    q = w.WH.makeKind('kurabe', 3, 'pair', 'cup'); w.WH.ui.forceQuestion(q);
+    ok(tm.timer === null, 'せんせいと ふたつ きく＝よむ まえは 動かない');
+    w.WH.ui.senseiRead();
+    ok(tm.total === 60 && tm.timer !== null, 'せんせいと ふたつ きく コップ＝60びょう total=' + tm.total);
+    w.WH.ui.timeout(); r = w.WH.ui.round();
+    ok(r.tries === 1 && !r.pk.ok[0] && !r.pk.ok[1] && el('msg').textContent.indexOf('○＝') >= 0 && el('msg').textContent.indexOf('△＝') >= 0, 'えらぶ まえの じかんぎれ＝○ と △ の ヒント');
+    el('play-back').click();
     put('TIMER checks=' + n + ' fails=' + fails.length + (fails.length ? ' ' + fails.join(' | ') : ''));
     put(fails.length === 0 ? 'TIMER=PASS' : 'TIMER=FAIL');
   } catch (e) { put('TIMER=FAIL 例外 ' + e + (e && e.stack ? e.stack : '')); }

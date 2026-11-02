@@ -18,7 +18,7 @@
     wakeru: { n: null, depth: null, asks: 2, schemas: 3, src: '練習帳10（4人に2こずつ・3こずつを2問）' },
     kazuhanashi: { n: null, depth: null, asks: null, schemas: 3, src: '練習帳11（数3つ・ふえて へる）' },
     nakama: { n: null, depth: null, asks: null, schemas: 4, src: '練習帳5（11こを自分で2つに分ける）・6（4つ×3部屋・はずれは近い仲間）',
-      many: { schema: 'wakeoo', n: 8, why: '練習帳5は11こ。画面（iPad 横 1024×640）に 絵が 入る 最大＝8こ（4こ×2列）に 下げた' } },
+      many: { schema: 'wakeoo', n: 11, why: '練習帳5は11こ。iPad 横（1024×640）に 12こ（6こ ずつ 2つの なかま）が 入ることを 1がめんの 検査で 確かめた＝下げずに 12こで 出す（11こは 2つに 同じ数で 分けられないため 12こ）' } },
     onajie: { n: 5, depth: null, asks: null, schemas: 3, src: '練習帳12（細部が1か所ずつ違う 絵から）' },
     katachi: { n: null, depth: null, asks: null, schemas: 5, src: '練習帳13・14・16・17・20（ハート・星・曲線・回したかけら・ななめの切り方）' },
     ana: { n: null, depth: null, asks: null, schemas: null, src: '練習帳15', why: '練習帳15は形が1つ（穴3つ・候補5つ）＝解き方の数を外す' },

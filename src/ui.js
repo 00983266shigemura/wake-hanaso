@@ -57,15 +57,16 @@
 
   /* ================= 1まわり ================= */
   function startRound(gid) {
-    var i, qs = [], order = [], lv, ids = [];
+    var i, qs, order = [], ids = [];
     for (i = 0; i < WH.GENRES.length; i++) { if (!WH.GENRES[i].open || sensei()) { ids.push(WH.GENRES[i].id); } }
     if (gid === 'mix') {
       while (order.length < S.perRound) { order = order.concat(WH.shuffle(ids)); }
-      for (i = 0; i < S.perRound; i++) { qs.push(WH.makeFor(order[i], S.g[order[i]].level, S.mode)); }
+      order = order.slice(0, S.perRound);
     } else {
-      lv = S.g[gid].level;
-      for (i = 0; i < S.perRound; i++) { qs.push(WH.makeFor(gid, lv, S.mode)); }
+      for (i = 0; i < S.perRound; i++) { order.push(gid); }
     }
+    /* 同じ型が 2問 続くときは 解き方を かえる（段4・WH.makeSeq） */
+    qs = WH.makeSeq(order, function (g) { return S.g[g].level; }, S.mode);
     G = { gid: gid, qs: qs, idx: 0, ok: 0, firstOk: 0, firstOkMain: 0, exp: 0, fruits: 0, tries: 0, done: false, streak: 0, hint: false, planned: qs.length, picks: [], why: null, pending: null, read: false };
     if (sensei()) { renderReady(); show('ready'); return; }
     show('play');
@@ -102,6 +103,8 @@
   function onTimeout() {
     var q = G.qs[G.idx];
     if (!G || G.done || screen !== 'play' || G.why) { return; }
+    /* ふたつ きく＝1つめの あとなら、えらんだ しるしを しらべて、のこりの しるし だけに ヒント */
+    if (q.kind === 'pair') { evaluatePair(q, G.pk.picks.slice(), true); return; }
     G.tries++; G.streak = 0; G.wrongOnce = true;
     if (G.tries === 1) {
       WH.snd.play('oshii');
@@ -115,10 +118,12 @@
   }
 
   /* ================= もんだいを 出す ================= */
-  function imgTag(id, cls) { return '<img class="' + (cls || 'cimg') + '" src="img/' + id + '.png" alt="">'; }
+  /* 絵は 200×200。width・height を 書いて、読みこむ まえから 正方形の 場所を とる（1がめんの 検査が 読みこみ前の 高さ0で 通らないように） */
+  function imgTag(id, cls) { return '<img class="' + (cls || 'cimg') + '" src="img/' + id + '.png" width="200" height="200" alt="">'; }
   function renderQuestion() {
     var q = G.qs[G.idx], box = el('choices'), i, c, wrap, lab, g = WH.genreById(q.g), sz = WH.stemSize(q), stem = el('q-stem'), cs = WH.choiceSize(q), s;
     G.tries = 0; G.done = false; G.hint = false; G.picks = []; G.why = null; G.pending = null; G.read = false; G.wrongOnce = false; G.expNow = null;
+    G.pk = q.kind === 'pair' ? { picks: [-1, -1], ok: [false, false] } : null;
     stopTimer(); WH.snd.hush();
     setText(el('play-genre'), g.name + '（' + WH.LEVEL_NAME[q.level] + '）' + (q.retest ? '・もう いちど' : ''));
     setText(el('play-no'), (G.idx + 1) + ' ／ ' + G.qs.length + ' もんめ');
@@ -144,7 +149,7 @@
       stem.style.display = 'none'; el('q-stem-html').style.display = 'block'; el('q-stem-html').innerHTML = '<div class="bigq">' + (sensei() ? '' : WH.questionText(q)) + '</div>'; showEl('q-box', !sensei());
     } else { showEl('q-box', !sensei()); stem.style.display = 'none'; el('q-stem-html').style.display = 'none'; }
     /* えらびし */
-    box.innerHTML = ''; box.className = 'choices' + (q.cType === 'wide' ? ' wide' : '') + (q.g === 'nakama' && q.kind === 'multi' ? ' six' : '') + (el('q-box').style.display === 'none' ? ' full' : '') + (q.kind !== 'open' && q.choices.length >= 5 ? ' five' : '');
+    box.innerHTML = ''; box.className = 'choices' + (q.cType === 'wide' ? ' wide' : '') + (q.g === 'nakama' && q.kind === 'multi' ? (q.choices.length >= 8 ? ' eight' : ' six') : '') + (el('q-box').style.display === 'none' ? ' full' : '') + (q.kind !== 'open' && q.choices.length >= 5 ? ' five' : '');
     if (q.kind !== 'open' && q.choices.length >= 5 && q.cType !== 'wide') { cs = [Math.round(cs[0] * 0.85), Math.round(cs[1] * 0.85)]; }
     showEl('open-box', q.kind === 'open');
     box.style.display = q.kind === 'open' ? 'none' : '';
@@ -160,6 +165,7 @@
       paintChoices();
     }
     setText(el('msg'), q.kind === 'open' ? (sensei() ? 'こえに だして はなしてね。おわったら おとなが「はなし おわった」' : '') : (q.kind === 'multi' ? q.need + 'つ タップしてね' : (q.kind === 'order' ? 'おおきい じゅんに タップしてね' : 'どれかな？ ' + (sensei() ? 'ゆびで さしてね' : 'タップしてね'))));
+    if (q.kind === 'pair') { pairPrompt(q); }
     el('msg').className = 'msg';
     el('next-btn').style.display = 'none';
     el('tbar').style.display = 'none';
@@ -184,6 +190,15 @@
   function onChoice(i) {
     var q = G.qs[G.idx], nodes = choiceNodes(), node = nodes[i], p, k;
     if (G.done || G.why || q.kind === 'open') { return; }
+    if (q.kind === 'pair') {
+      /* ふたつ きく＝○ → △ の じゅんに えらぶ。えらんだ しるしを もう いちど おすと とりけし。あっていた しるしは うごかない */
+      for (k = 0; k < 2; k++) { if (!G.pk.ok[k] && G.pk.picks[k] === i) { G.pk.picks[k] = -1; delCls(node, 'picked'); setText(markEl(node), ''); pairPrompt(q); return; } }
+      if (pairLocked(q, i)) { return; }
+      k = pairCur(); if (k < 0) { return; }
+      G.pk.picks[k] = i; delCls(node, 'wrong'); addCls(node, 'picked'); setText(markEl(node), q.parts[k].mark); WH.snd.play('pick');
+      if (pairCur() < 0) { submit(G.pk.picks.slice()); } else { pairPrompt(q); }
+      return;
+    }
     if (q.kind === 'multi') {
       p = G.picks.indexOf(i);
       if (p >= 0) { G.picks.splice(p, 1); delCls(node, 'picked'); setText(node.getElementsByClassName('mark')[0], ''); }
@@ -217,12 +232,56 @@
     evaluate(q, ans);
   }
   function clearPicks() {
-    var nodes = choiceNodes(), k;
+    var nodes = choiceNodes(), k, q = G.qs[G.idx];
+    if (q.kind === 'pair') {
+      for (k = 0; k < 2; k++) { if (!G.pk.ok[k] && G.pk.picks[k] >= 0) { delCls(nodes[G.pk.picks[k]], 'picked'); setText(markEl(nodes[G.pk.picks[k]]), ''); G.pk.picks[k] = -1; } }
+      return;
+    }
     for (k = 0; k < nodes.length; k++) { delCls(nodes[k], 'picked'); if (!hasCls(nodes[k], 'wrong') && !hasCls(nodes[k], 'right')) { setText(nodes[k].getElementsByClassName('mark')[0], ''); } }
     G.picks = [];
   }
+  /* ================= ふたつ きく（1回の 読みで ○ と △）＝組で 1問。片方だけ 合っても 組として まちがい 1回 ================= */
+  function markEl(node) { return node.getElementsByClassName('mark')[0]; }
+  function pairCur() { var k; for (k = 0; k < 2; k++) { if (!G.pk.ok[k] && G.pk.picks[k] < 0) { return k; } } return -1; }
+  function pairLocked(q, i) { var k; for (k = 0; k < 2; k++) { if (G.pk.ok[k] && q.parts[k].answerIndex === i) { return true; } } return false; }
+  function pairPrompt(q) {
+    var k = pairCur();
+    if (k < 0) { return; }
+    /* 2つめの まえに 出すのは しるしだけ（条件の 文は 出しなおさない） */
+    setText(el('msg'), (k === 0 && !G.pk.ok[1] ? 'さいしょは ' : 'つぎは ') + q.parts[k].mark + ' を ' + (sensei() ? 'ゆびで さしてね' : 'タップしてね'));
+  }
+  function pairMarks(q, ks) { var s = [], i; for (i = 0; i < ks.length; i++) { s.push(q.parts[ks[i]].mark); } return s.join(' と '); }
+  /* えらんだ しるしを しらべる。あっていた しるしは ✓ で のこし、ちがった しるしは えらびなおす。もどりは ちがった しるしの 一覧 */
+  function pairJudge(q, ans) {
+    var nodes = choiceNodes(), k, n, wrong = [];
+    for (k = 0; k < 2; k++) {
+      if (G.pk.ok[k]) { continue; }
+      if (ans[k] === undefined || ans[k] < 0) { wrong.push(k); continue; }
+      n = nodes[ans[k]]; delCls(n, 'picked');
+      if (ans[k] === q.parts[k].answerIndex) { G.pk.ok[k] = true; addCls(n, 'right'); setText(markEl(n), q.parts[k].mark + ' ✓'); }
+      else { wrong.push(k); addCls(n, 'wrong'); setText(markEl(n), q.parts[k].mark + ' ！ ちがう'); }
+      G.pk.picks[k] = G.pk.ok[k] ? ans[k] : -1;
+    }
+    return wrong;
+  }
+  function evaluatePair(q, ans, timeout) {
+    var wrong = pairJudge(q, ans);
+    if (!wrong.length) { gotRight(q); return; }
+    G.tries++; G.streak = 0; G.wrongOnce = true;
+    if (G.tries === 1) {
+      WH.snd.play('oshii');
+      G.pk.wrong = wrong;
+      giveHint(q, -1); ensureRetest(q);
+      setText(el('msg'), (timeout ? 'じかんだよ！ ' : 'おしい！ ') + WH.pairHint(q, wrong) + '。もう いちど ' + pairMarks(q, wrong) + ' を えらんでね');
+      el('msg').className = 'msg warn';
+      startTimer(WH.timeFor(q));
+    } else {
+      revealAnswer(q, timeout ? 'じかんだよ。' : '');
+    }
+  }
   function evaluate(q, ans) {
     var nodes = choiceNodes(), i, wrongIdx = -1;
+    if (q.kind === 'pair') { evaluatePair(q, ans, false); return; }
     if (isRight(q, ans)) {
       if (q.kind === 'choose') { addCls(nodes[ans], 'right'); setText(nodes[ans].getElementsByClassName('mark')[0], '✓ せいかい'); }
       else { for (i = 0; i < ans.length; i++) { addCls(nodes[ans[i]], 'right'); } }
@@ -255,6 +314,7 @@
     G.done = true; stopTimer();
     WH.snd.play('kotae');
     if (q.kind === 'choose') { addCls(nodes[q.answerIndex], 'right'); setText(nodes[q.answerIndex].getElementsByClassName('mark')[0], '✓ こたえ'); }
+    else if (q.kind === 'pair') { for (k = 0; k < 2; k++) { if (!G.pk.ok[k]) { delCls(nodes[q.parts[k].answerIndex], 'wrong'); addCls(nodes[q.parts[k].answerIndex], 'right'); setText(markEl(nodes[q.parts[k].answerIndex]), q.parts[k].mark + ' こたえ'); } } }
     else if (q.kind === 'order') { for (i = 0; i < q.answerOrder.length; i++) { addCls(nodes[q.answerOrder[i]], 'right'); setText(nodes[q.answerOrder[i]].getElementsByClassName('mark')[0], String(i + 1)); } }
     else { for (k = 0; k < q.answerSets[0].length; k++) { addCls(nodes[q.answerSets[0][k]], 'right'); setText(nodes[q.answerSets[0][k]].getElementsByClassName('mark')[0], '○'); } }
     ensureRetest(q);
@@ -264,8 +324,9 @@
     afterQuestion(q, false);
   }
   function gotRight(q) {
-    var fr = (G.tries === 0) ? 2 : 1, bonus = '';
+    var fr = (G.tries === 0) ? 2 : 1, bonus = '', nodes, k;
     G.done = true; stopTimer();
+    if (q.kind === 'pair') { nodes = choiceNodes(); for (k = 0; k < 2; k++) { addCls(nodes[q.parts[k].answerIndex], 'right'); setText(markEl(nodes[q.parts[k].answerIndex]), q.parts[k].mark + ' せいかい'); } }
     G.ok++; if (G.tries === 0) { G.firstOk++; G.streak++; if (!q.retest) { G.firstOkMain++; } } else { G.streak = 0; }
     if (G.streak >= 3) { fr += 1; bonus = '（3もん れんぞく！ ＋1）'; WH.snd.play('combo'); } else { WH.snd.play(G.tries === 0 ? 'ok' : 'ok2'); }
     if (G.expNow === 2) { fr += 1; bonus += '（わけを はなせた ＋1）'; }
@@ -284,7 +345,7 @@
     var nq, at;
     if (q.retest || G.planRetested === G.idx) { return; }
     G.planRetested = G.idx;
-    nq = WH.makeFor(q.g, q.level, S.mode); nq.retest = true;
+    nq = WH.makeLike(q, S.mode); nq.retest = true;   /* 同じ型・同じ 解き方・同じ 形（ふたつ きく は 組ごと） */
     at = Math.min(G.qs.length, G.idx + 2 + WH.ri(2));
     G.qs.splice(at, 0, nq);
   }
@@ -589,12 +650,15 @@
   /* 試験用＝画面を 直接 うごかす 入口 */
   WH.ui = { startRound: startRound, begin: beginFromReady, state: function () { return S; }, round: function () { return G; }, onChoice: onChoice, rateWhy: rateWhy, senseiRead: senseiRead,
     timer: function () { return TM; }, setTimer: function (on) { TM.on = !!on; if (!on) { stopTimer(); el('tbar').style.display = 'none'; } }, timeout: onTimeout, screen: function () { return screen; },
-    setMode: function (m) { S.mode = m; }, selfTest: uiSelfTest };
+    setMode: function (m) { S.mode = m; }, selfTest: uiSelfTest,
+    /* いまの 問題を q に さしかえて 出しなおす（試験・撮影用） */
+    forceQuestion: function (q) { G.qs[G.idx] = q; if (sensei()) { G.read = false; } renderQuestion(); } };
 
   /* ================= 自己点検（画面の 部品・tools/test.html が 無音の複製の 中で よぶ） ================= */
   function fire(n, type) { var ev = doc.createEvent('Event'); ev.initEvent(type, true, true); n.dispatchEvent(ev); }
   function uiSelfTest() {
-    var pass = 0, fail = 0, lines = [], i, n, all, targets = [], skipped = [], bad = [], nBtn = 0, nCard = 0, scr0, idx0, dur, band, raw, t1, t2, shown0, q, wrong, k, keysOk, at, planned, nodes;
+    var pass = 0, fail = 0, lines = [], i, n, all, targets = [], skipped = [], bad = [], nBtn = 0, nCard = 0, scr0, idx0, dur, band, raw, t1, t2, shown0, q, wrong, k, keysOk, at, planned, nodes, k0, w0, w1;
+    function markOf(node) { return node.getElementsByClassName('mark')[0].textContent; }
     function ok(cond, label) { if (cond) { pass++; } else { fail++; lines.push('FAIL ' + label); } }
     function wrongIdx(qq) { var w = []; for (k = 0; k < qq.choices.length; k++) { if (k !== qq.answerIndex) { w.push(k); } } return w; }
     TM.on = false; stopTimer();
@@ -635,6 +699,29 @@
     ok(G.qs.length === planned + 1, 'K23 もう いちど は 1もんに つき 1かい');
     lines.push('K21 OK 1かいめ ヒント・2かいめ こたえ（ばつ なし）');
     lines.push('K23 OK まちがえた もんだい は ' + (at - G.idx) + 'もん あとに もう いちど');
+    /* K21 ふたつ きく（ひとりで）＝片方だけ 合っても 組で まちがい 1回。ちがった しるし だけ ヒント→2回目は その しるしの こたえ。K23 は 組ごと */
+    S.g.himo.level = 3; startRound('himo');
+    q = WH.makeKind('himo', 3, 'pair'); G.qs[G.idx] = q; renderQuestion();
+    planned = G.qs.length; k0 = G.firstOk;
+    ok(el('msg').textContent.indexOf('○') >= 0, 'K21 ふたつ きく＝さいしょは ○');
+    w0 = -1; w1 = -1; for (i = 0; i < q.choices.length; i++) { if (i !== q.parts[0].answerIndex && i !== q.parts[1].answerIndex) { if (w0 < 0) { w0 = i; } else if (w1 < 0) { w1 = i; } } }
+    onChoice(w0);
+    ok(G.pk.picks[0] === w0 && el('msg').textContent.indexOf('△') >= 0 && el('msg').textContent.indexOf('ながい') < 0 && el('msg').textContent.indexOf('みじかい') < 0, 'K21 ふたつ きく ○ の あとは △ の しるしだけ（条件の 文は 出さない）');
+    onChoice(q.parts[1].answerIndex);
+    nodes = choiceNodes();
+    ok(G.tries === 1 && G.pk.ok[1] && !G.pk.ok[0] && !G.done && hasCls(nodes[w0], 'wrong') && hasCls(nodes[q.parts[1].answerIndex], 'right') && el('msg').textContent.indexOf('おしい') === 0 && el('msg').textContent.indexOf('○＝') >= 0 && el('msg').textContent.indexOf('△＝') < 0 && el('next-btn').style.display === 'none', 'K21 ふたつ きく 1かいめ＝ちがった ○ だけ ヒント・あった △ は のこる・組で まちがい 1かい');
+    at = -1; for (i = G.idx + 1; i < G.qs.length; i++) { if (G.qs[i].retest) { at = i; } }
+    ok(at >= G.idx + 2 && at <= G.idx + 3 && G.qs[at].kind === 'pair' && G.qs[at].schema === q.schema && G.qs[at].g === 'himo' && G.qs.length === planned + 1, 'K23 ふたつ きく は 組ごとに もう いちど（' + (at - G.idx) + 'もん あと）');
+    onChoice(q.parts[1].answerIndex);
+    ok(G.pk.picks[0] === -1 && !G.done, 'K21 ふたつ きく あった しるしは うごかない');
+    onChoice(w1);
+    nodes = choiceNodes();
+    ok(G.done === true && hasCls(nodes[q.parts[0].answerIndex], 'right') && markOf(nodes[q.parts[0].answerIndex]).indexOf('○ こたえ') === 0 && G.firstOk === k0 && el('msg').textContent.indexOf('こたえは これ') >= 0, 'K21 ふたつ きく 2かいめ＝○ の こたえ（はじめて正解には 数えない）');
+    onNext(); q = WH.makeKind('himo', 3, 'pair'); G.qs[G.idx] = q; renderQuestion(); k0 = G.firstOk;
+    onChoice(q.parts[0].answerIndex); onChoice(q.parts[1].answerIndex);
+    ok(G.done === true && G.tries === 0 && G.firstOk === k0 + 1 && el('msg').textContent.indexOf('せいかい') === 0, 'K21 ふたつ きく 2つとも あえば 1もん せいかい');
+    lines.push('K21 OK ふたつ きく＝ちがった しるし だけ ヒント・2かいめ その しるしの こたえ・組で 1もん');
+    lines.push('K23 OK ふたつ きく は 組ごとに もう いちど');
     /* せんせいと＝よんだら 文が かくれる・こたえの まえに「どうして？」・はなせた が きろくに のこる・open は おはなしだけ */
     onNext();
     S.mode = 'sensei'; S.g.nakama.level = 1; startRound('nakama');
